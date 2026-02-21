@@ -1,0 +1,26 @@
+modules:
+  jira:projectPage:
+    - key: sprintgrooming-hello-world-project-page
+      resource: main
+      resolver:
+        function: resolver
+      title: 'Sprint Grooming'
+      layout: basic
+  function:
+    - key: resolver
+      handler: index.handler
+resources:
+  - key: main
+    path: static/hello-world/build
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:jira-user
+    - storage:app
+app:
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+    architecture: arm64
+  id: ari:cloud:ecosystem::app/6f7c4968-52a3-46cb-ba7c-1b328d026dcc
