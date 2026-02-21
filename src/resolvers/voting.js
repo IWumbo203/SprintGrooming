@@ -9,10 +9,24 @@ export const submitVote = async (req) => {
     const smId = await storage.get(SCRUM_MASTER_KEY);
     if (accountId === smId) throw new Error('Scrum Master cannot vote');
 
+    // Get user display name from presence cache or fetch it
+    let displayName = 'Unknown User';
+    const activeUsers = await storage.get('session-active-users') || {};
+    if (activeUsers[accountId]) {
+        displayName = activeUsers[accountId].displayName;
+    } else {
+        const response = await api.asApp().requestJira(route`/rest/api/3/user?accountId=${accountId}`);
+        if (response.ok) {
+            const user = await response.json();
+            displayName = user.displayName;
+        }
+    }
+
     const votesKey = `${VOTES_PREFIX}${itemId}`;
     const votes = await storage.get(votesKey) || {};
     
-    votes[accountId] = vote;
+    // Store both vote value and display name
+    votes[accountId] = { vote, displayName };
     await storage.set(votesKey, votes);
     return votes;
 };
@@ -25,26 +39,21 @@ export const getVotes = async (req) => {
     const accountIds = Object.keys(votes);
     if (accountIds.length === 0) return { votes: [], revealed };
 
-    try {
-        const query = accountIds.map(id => `accountId=${id}`).join('&');
-        const response = await api.asApp().requestJira(route`/rest/api/3/user/bulk?${query}`);
-        
-        const users = response.ok ? await response.json() : [];
-        const userMap = {};
-        users.forEach(u => userMap[u.accountId] = u.displayName);
+    const voteList = accountIds.map(id => {
+        const voteData = votes[id];
+        // Handle both old (string) and new (object) vote formats
+        const voteValue = typeof voteData === 'object' ? voteData.vote : voteData;
+        const displayName = typeof voteData === 'object' ? voteData.displayName : 'Unknown User';
 
-        const voteList = accountIds.map(id => ({
+        return {
             accountId: id,
-            displayName: userMap[id] || 'Unknown User',
-            vote: revealed ? votes[id] : '?', // Hide vote value if not revealed
+            displayName: displayName,
+            vote: revealed ? voteValue : '?', // Hide vote value if not revealed
             hasVoted: true
-        }));
+        };
+    });
 
-        return { votes: voteList, revealed };
-    } catch (err) {
-        console.error('Error in getVotes:', err);
-        return { votes: [], revealed };
-    }
+    return { votes: voteList, revealed };
 };
 
 export const revealVotes = async () => {

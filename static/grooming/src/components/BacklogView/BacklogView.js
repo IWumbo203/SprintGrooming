@@ -37,6 +37,7 @@ const BacklogView = ({ backlog, groomingList, onDragEnd, startSession }) => {
                     >
                         Start Session
                     </button>
+                    <p className="sm-notice-text">Only the Scrum Master should press the button</p>
                 </div>
             </div>
         </DragDropContext>

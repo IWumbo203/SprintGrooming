@@ -3,7 +3,7 @@ import '../../styles/GroomingSession.css';
 import '../../styles/Common.css';
 
 const QueueSidebar = ({ groomingList, currentItem, isSM, onSelectItem }) => (
-    <div className="queue-sidebar">
+    <div>
         <h3>Queue</h3>
         {groomingList.map((item) => (
             <div 

@@ -21,23 +21,27 @@ function App() {
     const [error, setError] = useState(null);
     const [storyPointFieldId, setStoryPointFieldId] = useState(null);
     const [updating, setUpdating] = useState(false);
+    const [sessionUsers, setSessionUsers] = useState([]);
+    const [isVotingOpen, setIsVotingOpen] = useState(false);
 
     const init = useCallback(async () => {
         try {
             const context = await view.getContext();
             setCurrentUserId(context.accountId);
 
-            const [backlogData, groomingData, sessionActive, currentItemData, fieldId, smId] = await Promise.all([
+            const [backlogData, groomingData, sessionActive, currentItemData, fieldId, smId, votingOpen] = await Promise.all([
                 api.getBacklog(),
                 api.getGroomingList(),
                 api.isSessionActive(),
                 api.getCurrentItem(),
                 api.getStoryPointField(),
-                api.getScrumMaster()
+                api.getScrumMaster(),
+                api.isVotingOpen()
             ]);
             
             setStoryPointFieldId(fieldId);
             setScrumMasterId(smId);
+            setIsVotingOpen(!!votingOpen);
             const groomingItems = groomingData || [];
             const backlogItems = backlogData || [];
             
@@ -80,7 +84,9 @@ function App() {
         setMyVote, 
         setVotes, 
         setVotesRevealed, 
-        setCurrentItem
+        setCurrentItem,
+        setSessionUsers,
+        setIsVotingOpen
     );
 
     const onDragEnd = async (result) => {
@@ -133,6 +139,11 @@ function App() {
         setVotesRevealed(true);
     };
 
+    const openVoting = async () => {
+        await api.openVoting();
+        setIsVotingOpen(true);
+    };
+
     const selectNextItem = async (item) => {
         setCurrentItem(item);
         setMyVote(null);
@@ -163,13 +174,15 @@ function App() {
             setGroomingList(updatedList);
             await api.updateGroomingList(updatedList);
 
-            await view.refresh();
+            try {
+                await view.refresh();
+            } catch (e) {
+                console.warn('View refresh failed, but points were updated:', e);
+            }
 
             const currentIndex = groomingList.findIndex(item => item.id === currentItem.id);
             if (currentIndex < groomingList.length - 1) {
                 await selectNextItem(groomingList[currentIndex + 1]);
-            } else {
-                alert("Grooming complete!");
             }
         } catch (err) {
             alert(`Failed to update points: ${err.message}`);
@@ -188,6 +201,7 @@ function App() {
             <GroomingSession 
                 currentItem={currentItem}
                 isSM={isSM}
+                scrumMasterId={scrumMasterId}
                 endSession={endSession}
                 myVote={myVote}
                 handleVote={handleVote}
@@ -198,6 +212,9 @@ function App() {
                 selectNextItem={selectNextItem}
                 applyPoints={applyPoints}
                 updating={updating}
+                sessionUsers={sessionUsers}
+                isVotingOpen={isVotingOpen}
+                openVoting={openVoting}
             />
         );
     }

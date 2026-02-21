@@ -1,6 +1,7 @@
 import React from 'react';
 import PointButton from './PointButton';
 import QueueSidebar from './QueueSidebar';
+import UserPresenceList from './UserPresenceList';
 import { FIBONACCI } from '../../constants';
 import '../../styles/GroomingSession.css';
 import '../../styles/Common.css';
@@ -8,6 +9,7 @@ import '../../styles/Common.css';
 const GroomingSession = ({ 
     currentItem, 
     isSM, 
+    scrumMasterId,
     endSession, 
     myVote, 
     handleVote, 
@@ -17,8 +19,14 @@ const GroomingSession = ({
     groomingList, 
     selectNextItem, 
     applyPoints, 
-    updating 
+    updating,
+    sessionUsers,
+    isVotingOpen,
+    openVoting
 }) => {
+    // Filter out the Scrum Master from the team members list
+    const teamMembers = (sessionUsers || []).filter(u => u.accountId !== scrumMasterId);
+
     const groupedVotes = votes.reduce((acc, v) => {
         if (!acc[v.vote]) acc[v.vote] = [];
         acc[v.vote].push(v.displayName);
@@ -31,9 +39,11 @@ const GroomingSession = ({
                 <div>
                     {isSM && <span className="sm-badge">SCRUM MASTER MODE</span>}
                 </div>
-                <button className="btn-danger" style={{ padding: '0.5rem 1rem' }} onClick={endSession}>
-                    End Session
-                </button>
+                {isSM && (
+                    <button className="btn-danger" style={{ padding: '0.5rem 1rem' }} onClick={endSession}>
+                        End Session
+                    </button>
+                )}
             </div>
 
             <div className="session-content">
@@ -45,42 +55,48 @@ const GroomingSession = ({
 
                     {!isSM && (
                         <div style={{ marginTop: '1.875rem' }}>
-                            <h3 style={{ marginBottom: '15px' }}>Select your Story Points</h3>
-                            <div className="point-grid">
-                                {FIBONACCI.map(val => (
-                                    <PointButton 
-                                        key={val} 
-                                        val={val} 
-                                        onClick={handleVote} 
-                                        isSelected={myVote === val} 
-                                    />
-                                ))}
-                            </div>
+                            <h3 style={{ marginBottom: '15px' }}>
+                                {isVotingOpen ? 'Select your Story Points' : 'Voting is currently locked'}
+                            </h3>
+                            {isVotingOpen ? (
+                                <div className="point-grid">
+                                    {FIBONACCI.map(val => (
+                                        <PointButton 
+                                            key={val} 
+                                            val={val} 
+                                            onClick={handleVote} 
+                                            isSelected={myVote === val} 
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ background: '#f4f5f7', padding: '1.25rem', borderRadius: '0.5rem', border: '1px dashed #ccc', textAlign: 'center', color: '#666' }}>
+                                    Please wait for the Scrum Master to open voting for this item.
+                                </div>
+                            )}
                         </div>
                     )}
 
                     <div className="votes-section">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3>Votes ({votes.length})</h3>
-                            {isSM && !votesRevealed && votes.length > 0 && (
-                                <button onClick={revealVotes} className="btn-success" style={{ padding: '0.5rem 1rem', fontWeight: 'bold' }}>
-                                    REVEAL VOTES
-                                </button>
-                            )}
+                            <h3>{votesRevealed ? 'Results' : 'Votes'} ({votes.length})</h3>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                {isSM && !isVotingOpen && !votesRevealed && (
+                                    <button onClick={openVoting} className="btn-primary" style={{ padding: '0.5rem 1rem' }}>
+                                        OPEN VOTING
+                                    </button>
+                                )}
+                                {isSM && isVotingOpen && !votesRevealed && votes.length > 0 && (
+                                    <button onClick={revealVotes} className="btn-success" style={{ padding: '0.5rem 1rem', fontWeight: 'bold' }}>
+                                        REVEAL VOTES
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="vote-list">
-                            {votes.length === 0 ? (
-                                <p style={{ color: '#666' }}>No votes cast yet.</p>
-                            ) : !votesRevealed ? (
-                                <div className="vote-card-hidden">
-                                    {votes.map(v => (
-                                        <div key={v.accountId} className="hidden-vote">
-                                            <div style={{ fontSize: '1.5rem' }}>✅</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#666' }}>{v.displayName}</div>
-                                        </div>
-                                    ))}
-                                </div>
+                            {!votesRevealed ? (
+                                <UserPresenceList users={teamMembers} votes={votes} hideHeader={true} />
                             ) : (
                                 Object.entries(groupedVotes).sort((a, b) => {
                                     const order = {'☕': 998, '∞': 999};
@@ -127,12 +143,29 @@ const GroomingSession = ({
                     </div>
                 </div>
 
-                <QueueSidebar 
-                    groomingList={groomingList} 
-                    currentItem={currentItem} 
-                    isSM={isSM} 
-                    onSelectItem={selectNextItem} 
-                />
+                <div className="queue-sidebar">
+                    <QueueSidebar 
+                        groomingList={groomingList} 
+                        currentItem={currentItem} 
+                        isSM={isSM} 
+                        onSelectItem={selectNextItem} 
+                    />
+                    <div className="presence-sidebar-section">
+                        <h3>Team Members</h3>
+                        <div className="presence-list-simple">
+                            {teamMembers.length === 0 ? (
+                                <p style={{ fontSize: '0.8rem', color: '#666' }}>No other members online.</p>
+                            ) : (
+                                teamMembers.map(user => (
+                                    <div key={user.accountId} className="presence-item-simple">
+                                        <img src={user.avatarUrl} alt="" className="presence-avatar-small" />
+                                        <span>{user.displayName}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

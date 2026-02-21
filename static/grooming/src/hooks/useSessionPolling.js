@@ -11,19 +11,28 @@ export const useSessionPolling = (
     setMyVote, 
     setVotes, 
     setVotesRevealed, 
-    setCurrentItem
+    setCurrentItem,
+    setSessionUsers,
+    setIsVotingOpen
 ) => {
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
-                const [sessionActive, currentItemData, smId, groomingData] = await Promise.all([
+                // Heartbeat
+                await api.heartbeat();
+
+                const [sessionActive, currentItemData, smId, groomingData, users, votingOpen] = await Promise.all([
                     api.isSessionActive(),
                     api.getCurrentItem(),
                     api.getScrumMaster(),
-                    api.getGroomingList()
+                    api.getGroomingList(),
+                    api.getSessionUsers(),
+                    api.isVotingOpen()
                 ]);
                 
                 setScrumMasterId(smId);
+                setSessionUsers(users || []);
+                setIsVotingOpen(!!votingOpen);
                 
                 // Update grooming list if changed (to catch SM movements or points applied)
                 if (JSON.stringify(groomingData) !== JSON.stringify(groomingList)) {
@@ -66,6 +75,8 @@ export const useSessionPolling = (
         setMyVote, 
         setVotes, 
         setVotesRevealed, 
-        setCurrentItem
+        setCurrentItem,
+        setSessionUsers,
+        setIsVotingOpen
     ]);
 };

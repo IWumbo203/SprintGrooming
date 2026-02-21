@@ -1,6 +1,6 @@
 import React from 'react';
 import { Draggable } from 'react-beautiful-dnd';
-import '../../styles/Common.css';
+import '../styles/Common.css';
 
 const IssueCard = ({ item, index }) => (
     <Draggable key={item.id} draggableId={item.id} index={index}>

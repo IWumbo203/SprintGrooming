@@ -6,6 +6,7 @@ export const CURRENT_ITEM_KEY = 'current-grooming-item';
 export const SCRUM_MASTER_KEY = 'scrum-master-id';
 export const REVEALED_KEY = 'votes-revealed';
 export const VOTES_PREFIX = 'votes-';
+export const VOTING_OPEN_KEY = 'voting-open';
 
 export const isSessionActive = async () => {
     return await storage.get(SESSION_ACTIVE_KEY) || false;
@@ -16,6 +17,7 @@ export const startSession = async (req) => {
     await storage.set(SESSION_ACTIVE_KEY, true);
     await storage.set(SCRUM_MASTER_KEY, accountId);
     await storage.set(REVEALED_KEY, false);
+    await storage.set(VOTING_OPEN_KEY, false);
     
     const list = await storage.get(GROOMING_LIST_KEY) || [];
     for (const item of list) {
