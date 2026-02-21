@@ -1,6 +1,6 @@
 modules:
   jira:projectPage:
-    - key: sprintgrooming-hello-world-project-page
+    - key: sprint-grooming-page
       resource: main
       resolver:
         function: resolver
