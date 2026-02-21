@@ -11,7 +11,7 @@ modules:
       handler: index.handler
 resources:
   - key: main
-    path: static/hello-world/build
+    path: static/grooming/build
 permissions:
   scopes:
     - read:jira-work

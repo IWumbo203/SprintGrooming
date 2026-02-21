@@ -1,0 +1,32 @@
+.backlog-container {
+    display: flex;
+    gap: 1.25rem;
+    padding: 0.625rem;
+}
+
+.backlog-column {
+    flex: 1;
+}
+
+.droppable-area {
+    background: #f4f5f7;
+    padding: 0.625rem;
+    min-height: 25rem;
+    border-radius: 0.25rem;
+}
+
+.grooming-droppable {
+    background: #ebecf0;
+}
+
+.start-session-btn {
+    margin-top: 1.25rem;
+    padding: 0.625rem;
+    width: 100%;
+}
+
+.start-session-btn:disabled {
+    background-color: #f4f5f7;
+    color: #a5adba;
+    cursor: not-allowed;
+}
