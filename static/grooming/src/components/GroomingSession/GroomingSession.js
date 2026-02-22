@@ -1,8 +1,10 @@
 import React from 'react';
-import PointButton from './PointButton';
 import QueueSidebar from './QueueSidebar';
 import UserPresenceList from './UserPresenceList';
-import { FIBONACCI } from '../../constants';
+import SessionHeader from './SessionHeader';
+import CurrentItemCard from './CurrentItemCard';
+import VotingArea from './VotingArea';
+import ResultsArea from './ResultsArea';
 import '../../styles/GroomingSession.css';
 import '../../styles/Common.css';
 
@@ -22,7 +24,8 @@ const GroomingSession = ({
     updating,
     sessionUsers,
     isVotingOpen,
-    openVoting
+    openVoting,
+    siteUrl
 }) => {
     // Filter out the Scrum Master from the team members list
     const teamMembers = (sessionUsers || []).filter(u => u.accountId !== scrumMasterId);
@@ -35,46 +38,18 @@ const GroomingSession = ({
 
     return (
         <div className="grooming-session-container">
-            <div className="session-header">
-                <div>
-                    {isSM && <span className="sm-badge">SCRUM MASTER MODE</span>}
-                </div>
-                {isSM && (
-                    <button className="btn-danger" style={{ padding: '0.5rem 1rem' }} onClick={endSession}>
-                        End Session
-                    </button>
-                )}
-            </div>
+            <SessionHeader isSM={isSM} endSession={endSession} />
 
             <div className="session-content">
                 <div className="main-area">
-                    <div className="current-item-card">
-                        <span style={{ color: '#666', fontSize: '0.9rem' }}>POINTING ON: {currentItem.key}</span>
-                        <h2 style={{ marginTop: '0.3125rem' }}>{currentItem.summary}</h2>
-                    </div>
+                    <CurrentItemCard currentItem={currentItem} siteUrl={siteUrl} />
 
                     {!isSM && (
-                        <div style={{ marginTop: '1.875rem' }}>
-                            <h3 style={{ marginBottom: '15px' }}>
-                                {isVotingOpen ? 'Select your Story Points' : 'Voting is currently locked'}
-                            </h3>
-                            {isVotingOpen ? (
-                                <div className="point-grid">
-                                    {FIBONACCI.map(val => (
-                                        <PointButton 
-                                            key={val} 
-                                            val={val} 
-                                            onClick={handleVote} 
-                                            isSelected={myVote === val} 
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{ background: '#f4f5f7', padding: '1.25rem', borderRadius: '0.5rem', border: '1px dashed #ccc', textAlign: 'center', color: '#666' }}>
-                                    Please wait for the Scrum Master to open voting for this item.
-                                </div>
-                            )}
-                        </div>
+                        <VotingArea 
+                            isVotingOpen={isVotingOpen} 
+                            handleVote={handleVote} 
+                            myVote={myVote} 
+                        />
                     )}
 
                     <div className="votes-section">
@@ -98,46 +73,12 @@ const GroomingSession = ({
                             {!votesRevealed ? (
                                 <UserPresenceList users={teamMembers} votes={votes} hideHeader={true} />
                             ) : (
-                                Object.entries(groupedVotes).sort((a, b) => {
-                                    const order = {'☕': 998, '∞': 999};
-                                    const valA = order[a[0]] || parseInt(a[0]);
-                                    const valB = order[b[0]] || parseInt(b[0]);
-                                    return valA - valB;
-                                }).map(([point, names]) => {
-                                    let summaryFontSize = '1.5rem';
-                                    if (point === '☕') summaryFontSize = '1.5rem';
-                                    else if (point === '∞') summaryFontSize = '2rem';
-
-                                    return (
-                                        <div key={point} className="revealed-vote-row">
-                                            <div className="revealed-vote-badge" style={{ fontSize: summaryFontSize }}>
-                                                {point}
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
-                                                    {names.length} {names.length === 1 ? 'vote' : 'votes'}
-                                                </div>
-                                                <div style={{ fontSize: '0.85rem', color: '#444' }}>
-                                                    {names.join(', ')}
-                                                </div>
-                                            </div>
-                                            {isSM && (
-                                                <button 
-                                                    disabled={updating || isNaN(parseFloat(point))}
-                                                    onClick={() => applyPoints(point)}
-                                                    className="btn-primary"
-                                                    style={{ 
-                                                        padding: '0.5rem 1rem', 
-                                                        background: isNaN(parseFloat(point)) ? '#ccc' : '#0052cc',
-                                                        cursor: (updating || isNaN(parseFloat(point))) ? 'not-allowed' : 'pointer'
-                                                    }}
-                                                >
-                                                    {updating ? 'Updating...' : 'APPLY POINT'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    );
-                                })
+                                <ResultsArea 
+                                    groupedVotes={groupedVotes} 
+                                    isSM={isSM} 
+                                    updating={updating} 
+                                    applyPoints={applyPoints} 
+                                />
                             )}
                         </div>
                     </div>

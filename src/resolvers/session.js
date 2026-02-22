@@ -7,17 +7,36 @@ export const SCRUM_MASTER_KEY = 'scrum-master-id';
 export const REVEALED_KEY = 'votes-revealed';
 export const VOTES_PREFIX = 'votes-';
 export const VOTING_OPEN_KEY = 'voting-open';
+export const LAST_ACTIVITY_KEY = 'session-start-time';
+
+const SESSION_DURATION = 7200000; // 2 hours in milliseconds
+
+export const updateActivity = async () => {
+    // No longer used for idle tracking, but kept as empty for compatibility if called
+};
 
 export const isSessionActive = async () => {
-    return await storage.get(SESSION_ACTIVE_KEY) || false;
+    const active = await storage.get(SESSION_ACTIVE_KEY) || false;
+    if (!active) return false;
+
+    const startTime = await storage.get(LAST_ACTIVITY_KEY);
+    if (startTime && (Date.now() - startTime > SESSION_DURATION)) {
+        console.log('Session expired (2 hour limit reached). Automatically ending.');
+        await endSession();
+        return false;
+    }
+
+    return true;
 };
 
 export const startSession = async (req) => {
     const { accountId } = req.context;
+    const now = Date.now();
     await storage.set(SESSION_ACTIVE_KEY, true);
     await storage.set(SCRUM_MASTER_KEY, accountId);
     await storage.set(REVEALED_KEY, false);
     await storage.set(VOTING_OPEN_KEY, false);
+    await storage.set(LAST_ACTIVITY_KEY, now);
     
     const list = await storage.get(GROOMING_LIST_KEY) || [];
     for (const item of list) {
@@ -34,6 +53,8 @@ export const endSession = async () => {
     await storage.set(SESSION_ACTIVE_KEY, false);
     await storage.delete(SCRUM_MASTER_KEY);
     await storage.delete(REVEALED_KEY);
+    await storage.delete(LAST_ACTIVITY_KEY);
+    await storage.set(VOTING_OPEN_KEY, false);
     
     const list = await storage.get(GROOMING_LIST_KEY) || [];
     for (const item of list) {
