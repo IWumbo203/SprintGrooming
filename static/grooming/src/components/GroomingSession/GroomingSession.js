@@ -53,16 +53,16 @@ const GroomingSession = ({
                     )}
 
                     <div className="votes-section">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="votes-header">
                             <h3>{votesRevealed ? 'Results' : 'Votes'} ({votes.length})</h3>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div className="header-actions">
                                 {isSM && !isVotingOpen && !votesRevealed && (
-                                    <button onClick={openVoting} className="btn-primary" style={{ padding: '0.5rem 1rem' }}>
+                                    <button onClick={openVoting} className="btn-primary btn-voting">
                                         OPEN VOTING
                                     </button>
                                 )}
                                 {isSM && isVotingOpen && !votesRevealed && votes.length > 0 && (
-                                    <button onClick={revealVotes} className="btn-success" style={{ padding: '0.5rem 1rem', fontWeight: 'bold' }}>
+                                    <button onClick={revealVotes} className="btn-success btn-voting btn-bold">
                                         REVEAL VOTES
                                     </button>
                                 )}
@@ -95,7 +95,7 @@ const GroomingSession = ({
                         <h3>Team Members</h3>
                         <div className="presence-list-simple">
                             {teamMembers.length === 0 ? (
-                                <p style={{ fontSize: '0.8rem', color: '#666' }}>No other members online.</p>
+                                <p className="no-members-text">No other members online.</p>
                             ) : (
                                 teamMembers.map(user => (
                                     <div key={user.accountId} className="presence-item-simple">

@@ -7,7 +7,7 @@ const SessionHeader = ({ isSM, endSession }) => (
             {isSM && <span className="sm-badge">SCRUM MASTER MODE</span>}
         </div>
         {isSM && (
-            <button className="btn-danger" style={{ padding: '0.5rem 1rem' }} onClick={endSession}>
+            <button className="btn-danger btn-header" onClick={endSession}>
                 End Session
             </button>
         )}

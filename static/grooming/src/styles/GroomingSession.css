@@ -30,6 +30,65 @@
     border-left: 0.3125rem solid #0052cc;
 }
 
+.pointing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.pointing-label {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.open-issue-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.item-summary {
+    margin-top: 0.3125rem;
+    margin-bottom: 1rem;
+}
+
+.empty-description {
+    color: #666;
+    font-style: italic;
+}
+
+.pre-wrap-text {
+    white-space: pre-wrap;
+}
+
+.render-error {
+    color: #de350b;
+}
+
+.markdown-container {
+    line-height: 1.5;
+}
+
+.markdown-container p {
+    margin-bottom: 0.5rem;
+}
+
+.markdown-container ul, .markdown-container ol {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+}
+
+.markdown-container h1, .markdown-container h2, .markdown-container h3 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.markdown-container code {
+    background: #f4f5f7;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-family: monospace;
+}
+
 .description-area {
     max-height: 12.5rem;
     overflow-y: auto;
@@ -59,6 +118,14 @@
     margin-top: 0.9375rem;
 }
 
+.voting-area {
+    margin-top: 1.875rem;
+}
+
+.voting-title {
+    margin-bottom: 0.9375rem;
+}
+
 .point-button {
     width: 3.75rem;
     height: 5rem;
@@ -69,6 +136,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.5rem;
+}
+
+.point-button-tea {
+    font-size: 1.75rem;
+}
+
+.point-button-infinity {
+    font-size: 2.5rem;
 }
 
 .point-button.selected {
@@ -92,6 +168,26 @@
 
 .votes-section {
     margin-top: 2.5rem;
+}
+
+.votes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.625rem;
+}
+
+.btn-voting {
+    padding: 0.5rem 1rem;
+}
+
+.no-members-text {
+    font-size: 0.8rem;
+    color: #666;
 }
 
 .vote-list {
@@ -121,6 +217,47 @@
     font-weight: bold;
     border-radius: 0.25rem;
     margin-right: 1rem;
+    font-size: 1.5rem;
+}
+
+.revealed-vote-badge-tea {
+    font-size: 1.5rem;
+}
+
+.revealed-vote-badge-infinity {
+    font-size: 2rem;
+}
+
+.revealed-vote-details {
+    flex: 1;
+}
+
+.revealed-vote-count {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.revealed-vote-names {
+    font-size: 0.85rem;
+    color: #444;
+}
+
+.btn-apply-point {
+    padding: 0.5rem 1rem;
+}
+
+.btn-apply-point:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-header {
+    padding: 0.5rem 1rem;
+}
+
+.no-users-text {
+    color: #666;
+    padding: 1rem;
 }
 
 .queue-item {
@@ -131,6 +268,22 @@
     justify-content: space-between;
     align-items: center;
     border: 0.0625rem solid #ccc;
+    cursor: default;
+}
+
+.queue-item-sm {
+    cursor: pointer;
+}
+
+.queue-item-info {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 0.625rem;
+}
+
+.queue-item-summary {
+    font-size: 0.8rem;
 }
 
 .queue-item.active {

@@ -4,17 +4,15 @@ import '../../styles/Common.css';
 
 const QueueSidebar = ({ groomingList, currentItem, isSM, onSelectItem }) => (
     <div>
-        <h3>Queue</h3>
         {groomingList.map((item) => (
             <div 
                 key={item.id} 
                 onClick={() => isSM && onSelectItem(item)}
-                className={`queue-item ${currentItem.id === item.id ? 'active' : 'inactive'}`}
-                style={{ cursor: isSM ? 'pointer' : 'default' }}
+                className={`queue-item ${currentItem.id === item.id ? 'active' : 'inactive'} ${isSM ? 'queue-item-sm' : ''}`}
             >
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '0.625rem' }}>
+                <div className="queue-item-info">
                     <strong>{item.key}</strong>
-                    <div style={{ fontSize: '0.8rem' }}>{item.summary}</div>
+                    <div className="queue-item-summary">{item.summary}</div>
                 </div>
                 {item.points !== undefined && item.points !== null && (
                     <div className="issue-points-badge">

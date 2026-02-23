@@ -7,8 +7,8 @@ import './styles/Common.css';
 function App() {
     const { state, actions } = useGroomingState();
 
-    if (state.error) return <div style={{ padding: '1.25rem', color: 'red' }}>{state.error}</div>;
-    if (state.loading) return <div style={{ padding: '1.25rem' }}>Loading...</div>;
+    if (state.error) return <div className="error-message">{state.error}</div>;
+    if (state.loading) return <div className="status-message">Loading...</div>;
 
     const isSM = state.currentUserId === state.scrumMasterId;
 

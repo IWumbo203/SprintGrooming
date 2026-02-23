@@ -4,9 +4,11 @@ export const getBacklog = async (req) => {
     const { context } = req;
     const projectKey = context.extension.project.key;
 
-    // First, find the story point field ID
+    // Use a hard-coded default or a faster way to find the field ID
+    // Most Jira Cloud instances use customfield_10016 for story points
+    // We fetch it once but could theoretically optimize this further
     const fieldResponse = await api.asUser().requestJira(route`/rest/api/3/field`);
-    let storyPointFieldId = 'customfield_10016'; // Default fallback
+    let storyPointFieldId = 'customfield_10016';
     if (fieldResponse.ok) {
         const fields = await fieldResponse.json();
         const field = fields.find(f => 
@@ -36,7 +38,7 @@ export const getBacklog = async (req) => {
     }
 
     const data = await response.json();
-    return data.issues.map(issue => ({
+    const issues = data.issues.map(issue => ({
         id: issue.id,
         key: issue.key,
         summary: issue.fields.summary,
@@ -45,4 +47,6 @@ export const getBacklog = async (req) => {
         priority: issue.fields.priority?.name || 'Medium',
         points: issue.fields[storyPointFieldId]
     }));
+
+    return { issues, storyPointFieldId };
 };

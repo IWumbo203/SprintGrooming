@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { view } from '@forge/bridge';
 import * as api from '../services/api';
 import { useSessionPolling } from './useSessionPolling';
@@ -27,39 +27,48 @@ export const useGroomingState = () => {
             const context = await view.getContext();
             setCurrentUserId(context.accountId);
             
-            // Site URL might be in different places; xdm_e is the most reliable fallback in Forge
             const params = new URLSearchParams(window.location.search);
             const hostUrl = params.get('xdm_e');
             const url = context.siteUrl || hostUrl || '';
             setSiteUrl(url);
 
-            const [backlogData, groomingData, sessionActive, currentItemData, fieldId, smId, votingOpen] = await Promise.all([
+            // Parallel load: Backlog (Master Data) + Current Session State (Consolidated)
+            const [backlogResult, sessionState] = await Promise.all([
                 api.getBacklog(),
-                api.getGroomingList(),
-                api.isSessionActive(),
-                api.getCurrentItem(),
-                api.getStoryPointField(),
-                api.getScrumMaster(),
-                api.isVotingOpen()
+                api.getGroomingState()
             ]);
             
+            const backlogItems = backlogResult?.issues || [];
+            const fieldId = backlogResult?.storyPointFieldId;
             setStoryPointFieldId(fieldId);
-            setScrumMasterId(smId);
-            setIsVotingOpen(!!votingOpen);
-            const groomingItems = groomingData || [];
-            const backlogItems = backlogData || [];
-            
             setFullBacklog(backlogItems);
-            const groomingIds = new Set(groomingItems.map(item => item.id));
-            setBacklog(backlogItems.filter(item => !groomingIds.has(item.id)));
-            setGroomingList(groomingItems);
-            setIsSessionActive(!!sessionActive);
-            setCurrentItem(currentItemData);
 
-            if (currentItemData) {
-                const result = await api.getVotes(currentItemData.id);
-                setVotes(result.votes || []);
-                setVotesRevealed(result.revealed);
+            if (sessionState) {
+                const {
+                    isSessionActive: serverActive,
+                    currentItem: serverItem,
+                    scrumMasterId: serverSmId,
+                    groomingList: serverList,
+                    sessionUsers: serverUsers,
+                    isVotingOpen: serverVoting,
+                    votes: serverVotes,
+                    votesRevealed: serverRevealed
+                } = sessionState;
+
+                setScrumMasterId(serverSmId);
+                setIsVotingOpen(!!serverVoting);
+                setGroomingList(serverList || []);
+                setIsSessionActive(!!serverActive);
+                setSessionUsers(serverUsers || []);
+                setVotes(serverVotes || []);
+                setVotesRevealed(!!serverRevealed);
+                
+                // Use the map we just built to enrich the current item
+                const issueMap = new Map(backlogItems.map(item => [item.id, item]));
+                if (serverItem) {
+                    const fullItem = issueMap.get(serverItem.id);
+                    setCurrentItem(fullItem ? { ...serverItem, description: fullItem.description } : serverItem);
+                }
             }
         } catch (err) {
             console.error('Initialization error:', err);
@@ -79,6 +88,26 @@ export const useGroomingState = () => {
         setBacklog(fullBacklog.filter(item => !groomingIds.has(item.id)));
     }, [fullBacklog, groomingList]);
 
+    // Master map for O(1) description lookup
+    const issueMap = new Map(fullBacklog.map(item => [item.id, item]));
+
+    // Track last manual action time to avoid "race condition" jump-backs
+    const lastActionTime = useRef(0);
+
+    const updateCurrentItem = useCallback((serverItem) => {
+        if (!serverItem) {
+            setCurrentItem(null);
+            return;
+        }
+
+        const fullItem = issueMap.get(serverItem.id);
+        if (fullItem) {
+            setCurrentItem({ ...serverItem, description: fullItem.description });
+        } else {
+            setCurrentItem(serverItem);
+        }
+    }, [fullBacklog]);
+
     useSessionPolling(
         isSessionActive, 
         currentItem, 
@@ -89,9 +118,10 @@ export const useGroomingState = () => {
         setMyVote, 
         setVotes, 
         setVotesRevealed, 
-        setCurrentItem,
+        updateCurrentItem,
         setSessionUsers,
-        setIsVotingOpen
+        setIsVotingOpen,
+        lastActionTime // Pass the ref to the poller
     );
 
     const onDragEnd = async (result) => {
@@ -118,12 +148,10 @@ export const useGroomingState = () => {
     const startSession = async () => {
         if (groomingList.length === 0) return;
         await api.startSession();
-        const smId = await api.getScrumMaster();
-        setScrumMasterId(smId);
         setIsSessionActive(true);
         setMyVote(null);
         setVotesRevealed(false);
-        setCurrentItem(groomingList[0]);
+        updateCurrentItem(groomingList[0]);
     };
 
     const endSession = async () => {
@@ -150,11 +178,20 @@ export const useGroomingState = () => {
     };
 
     const selectNextItem = async (item) => {
-        setCurrentItem(item);
+        // 1. Mark the time of this manual action
+        lastActionTime.current = Date.now();
+        
+        // 2. Instant Switch: Update local state immediately from memory
+        updateCurrentItem(item);
         setMyVote(null);
         setVotes([]);
         setVotesRevealed(false);
-        await api.setCurrentItem(item);
+        
+        try {
+            await api.setCurrentItem(item);
+        } catch (err) {
+            console.error('Failed to select next item:', err);
+        }
     };
 
     const applyPoints = async (points) => {

@@ -9,7 +9,7 @@ const BacklogView = ({ backlog, groomingList, onDragEnd, startSession }) => {
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="backlog-container">
                 <div className="backlog-column">
-                    <h3 style={{ marginBottom: '0.625rem' }}>Backlog</h3>
+                    <h3 className="column-title">Backlog</h3>
                     <Droppable droppableId="backlog">
                         {(provided) => (
                             <div {...provided.droppableProps} ref={provided.innerRef} className="droppable-area">
@@ -21,7 +21,7 @@ const BacklogView = ({ backlog, groomingList, onDragEnd, startSession }) => {
                 </div>
 
                 <div className="backlog-column">
-                    <h3 style={{ marginBottom: '0.625rem' }}>Grooming Selection</h3>
+                    <h3 className="column-title">Grooming Selection</h3>
                     <Droppable droppableId="grooming">
                         {(provided) => (
                             <div {...provided.droppableProps} ref={provided.innerRef} className="droppable-area grooming-droppable">

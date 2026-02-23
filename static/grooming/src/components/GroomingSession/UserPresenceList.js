@@ -6,7 +6,7 @@ const UserPresenceList = ({ users, votes, hideHeader }) => {
     const votedMap = new Set(votes.map(v => v.accountId));
 
     if (users.length === 0) {
-        return <p style={{ color: '#666', padding: '1rem' }}>No team members online.</p>;
+        return <p className="no-users-text">No team members online.</p>;
     }
 
     return (

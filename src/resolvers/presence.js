@@ -26,8 +26,8 @@ export const heartbeat = async (req) => {
         users[accountId].lastSeen = now;
     }
 
-    // Clean up old users (inactive for more than 20 seconds)
-    const activeThreshold = now - 20000;
+    // Clean up old users (inactive for more than 180 seconds)
+    const activeThreshold = now - 180000;
     const cleanedUsers = {};
     Object.keys(users).forEach(id => {
         if (users[id].lastSeen > activeThreshold) {
@@ -42,7 +42,7 @@ export const heartbeat = async (req) => {
 export const getSessionUsers = async () => {
     const users = await storage.get(SESSION_USERS_KEY) || {};
     const now = Date.now();
-    const activeThreshold = now - 20000;
+    const activeThreshold = now - 180000;
 
     // Return only currently active ones
     return Object.values(users).filter(u => u.lastSeen > activeThreshold);

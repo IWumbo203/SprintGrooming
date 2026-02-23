@@ -1,4 +1,5 @@
 import { storage } from '@forge/api';
+import { heartbeat, getSessionUsers } from './presence';
 
 export const GROOMING_LIST_KEY = 'grooming-list';
 export const SESSION_ACTIVE_KEY = 'session-active';
@@ -11,22 +12,67 @@ export const LAST_ACTIVITY_KEY = 'session-start-time';
 
 const SESSION_DURATION = 7200000; // 2 hours in milliseconds
 
-export const updateActivity = async () => {
-    // No longer used for idle tracking, but kept as empty for compatibility if called
-};
-
 export const isSessionActive = async () => {
     const active = await storage.get(SESSION_ACTIVE_KEY) || false;
     if (!active) return false;
 
     const startTime = await storage.get(LAST_ACTIVITY_KEY);
     if (startTime && (Date.now() - startTime > SESSION_DURATION)) {
-        console.log('Session expired (2 hour limit reached). Automatically ending.');
         await endSession();
         return false;
     }
 
     return true;
+};
+
+export const getGroomingState = async (req) => {
+    await heartbeat(req);
+
+    const [
+        active,
+        currentItem,
+        scrumMasterId,
+        groomingList,
+        users,
+        votingOpen,
+        revealed
+    ] = await Promise.all([
+        storage.get(SESSION_ACTIVE_KEY),
+        storage.get(CURRENT_ITEM_KEY),
+        storage.get(SCRUM_MASTER_KEY),
+        storage.get(GROOMING_LIST_KEY),
+        getSessionUsers(),
+        storage.get(VOTING_OPEN_KEY),
+        storage.get(REVEALED_KEY)
+    ]);
+
+    let votes = [];
+    if (active && currentItem) {
+        const votesData = await storage.get(`${VOTES_PREFIX}${currentItem.id}`) || {};
+        const accountIds = Object.keys(votesData);
+        votes = accountIds.map(id => {
+            const voteData = votesData[id];
+            const voteValue = typeof voteData === 'object' ? voteData.vote : voteData;
+            const displayName = typeof voteData === 'object' ? voteData.displayName : 'Unknown User';
+            return {
+                accountId: id,
+                displayName,
+                vote: revealed ? voteValue : '?',
+                hasVoted: true
+            };
+        });
+    }
+
+    return {
+        isSessionActive: !!active,
+        currentItem,
+        scrumMasterId,
+        groomingList: groomingList || [],
+        sessionUsers: users || [],
+        isVotingOpen: !!votingOpen,
+        votes,
+        votesRevealed: !!revealed
+    };
 };
 
 export const startSession = async (req) => {

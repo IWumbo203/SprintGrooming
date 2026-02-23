@@ -8,7 +8,8 @@
     "@forge/bridge": "5.13.0",
     "react": "^16",
     "react-beautiful-dnd": "^13.1.1",
-    "react-dom": "^16"
+    "react-dom": "^16",
+    "react-markdown": "^8.0.7"
   },
   "scripts": {
     "start": "react-scripts start",

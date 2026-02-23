@@ -8,20 +8,20 @@ const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints }) => {
         const valB = order[b[0]] || parseInt(b[0]);
         return valA - valB;
     }).map(([point, names]) => {
-        let summaryFontSize = '1.5rem';
-        if (point === '☕') summaryFontSize = '1.5rem';
-        else if (point === '∞') summaryFontSize = '2rem';
+        let extraBadgeClass = '';
+        if (point === '☕') extraBadgeClass = 'revealed-vote-badge-tea';
+        else if (point === '∞') extraBadgeClass = 'revealed-vote-badge-infinity';
 
         return (
             <div key={point} className="revealed-vote-row">
-                <div className="revealed-vote-badge" style={{ fontSize: summaryFontSize }}>
+                <div className={`revealed-vote-badge ${extraBadgeClass}`}>
                     {point}
                 </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                <div className="revealed-vote-details">
+                    <div className="revealed-vote-count">
                         {names.length} {names.length === 1 ? 'vote' : 'votes'}
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#444' }}>
+                    <div className="revealed-vote-names">
                         {names.join(', ')}
                     </div>
                 </div>
@@ -29,12 +29,7 @@ const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints }) => {
                     <button 
                         disabled={updating || isNaN(parseFloat(point))}
                         onClick={() => applyPoints(point)}
-                        className="btn-primary"
-                        style={{ 
-                            padding: '0.5rem 1rem', 
-                            background: isNaN(parseFloat(point)) ? '#ccc' : '#0052cc',
-                            cursor: (updating || isNaN(parseFloat(point))) ? 'not-allowed' : 'pointer'
-                        }}
+                        className="btn-primary btn-apply-point"
                     >
                         {updating ? 'Updating...' : 'APPLY POINT'}
                     </button>

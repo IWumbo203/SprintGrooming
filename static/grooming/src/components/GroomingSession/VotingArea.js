@@ -4,8 +4,8 @@ import { FIBONACCI } from '../../constants';
 import '../../styles/GroomingSession.css';
 
 const VotingArea = ({ isVotingOpen, handleVote, myVote }) => (
-    <div style={{ marginTop: '1.875rem' }}>
-        <h3 style={{ marginBottom: '15px' }}>
+    <div className="voting-area">
+        <h3 className="voting-title">
             {isVotingOpen ? 'Select your Story Points' : 'Voting is currently locked'}
         </h3>
         {isVotingOpen ? (

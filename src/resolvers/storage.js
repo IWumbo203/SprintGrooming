@@ -1,5 +1,6 @@
 import { storage } from '@forge/api';
-import { GROOMING_LIST_KEY, CURRENT_ITEM_KEY, REVEALED_KEY, VOTES_PREFIX, VOTING_OPEN_KEY, updateActivity } from './session';
+import { GROOMING_LIST_KEY, CURRENT_ITEM_KEY, REVEALED_KEY, VOTES_PREFIX, VOTING_OPEN_KEY } from './session';
+import { getIssueDescription } from './jira';
 
 export const getGroomingList = async () => {
     return await storage.get(GROOMING_LIST_KEY) || [];
@@ -7,7 +8,11 @@ export const getGroomingList = async () => {
 
 export const updateGroomingList = async (req) => {
     const { list } = req.payload;
-    await storage.set(GROOMING_LIST_KEY, list);
+    
+    // Safety: Strip descriptions before storing in Forge to avoid the 32KB limit
+    const leanList = list.map(({ description, ...rest }) => rest);
+    
+    await storage.set(GROOMING_LIST_KEY, leanList);
     return list;
 };
 
@@ -17,11 +22,13 @@ export const getCurrentItem = async () => {
 
 export const setCurrentItem = async (req) => {
     const { item } = req.payload;
+    
+    // Since we now pre-load descriptions in memory on the frontend, 
+    // we only need to store the basic item info in Forge Storage.
     await storage.set(CURRENT_ITEM_KEY, item);
     await storage.set(REVEALED_KEY, false);
     await storage.set(VOTING_OPEN_KEY, false);
     await storage.delete(`${VOTES_PREFIX}${item.id}`);
-    await updateActivity();
     return item;
 };
 
@@ -31,6 +38,5 @@ export const isVotingOpen = async () => {
 
 export const openVoting = async () => {
     await storage.set(VOTING_OPEN_KEY, true);
-    await updateActivity();
     return true;
 };

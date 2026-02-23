@@ -8,6 +8,10 @@
     flex: 1;
 }
 
+.column-title {
+    margin-bottom: 0.625rem;
+}
+
 .droppable-area {
     background: #f4f5f7;
     padding: 0.625rem;
