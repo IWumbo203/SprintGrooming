@@ -7,113 +7,64 @@ const POLLING_INTERVALS = {
     BACKGROUND: 15000  // 15s: Tab hidden
 };
 
-export const useSessionPolling = (
-    isSessionActive, 
-    currentItem, 
-    groomingList, 
-    setScrumMasterId, 
-    setGroomingList, 
-    setIsSessionActive, 
-    setMyVote, 
-    setVotes, 
-    setVotesRevealed, 
-    setCurrentItem,
-    setSessionUsers,
-    setIsVotingOpen,
-    lastActionTime
-) => {
-    // Use refs to access current state in the poll without triggering interval resets
-    const stateRef = useRef({ isSessionActive, currentItem, groomingList });
-    
+/** Back off next poll for this long after a mutation so we don't poll immediately after receiving state from the resolver. */
+const BACKOFF_MS = 3000;
+/** When backing off, use this interval for the next poll. */
+const BACKOFF_INTERVAL_MS = 5000;
+
+/**
+ * Polls getGroomingState and invokes onSyncState with the result. Uses lastActionTime to back off
+ * polling after the user performs a mutation (which returns state). Refetches immediately when
+ * the tab becomes visible.
+ */
+export const useSessionPolling = (onSyncState, lastActionTime, isSessionActive) => {
+    const isSessionActiveRef = useRef(isSessionActive);
     useEffect(() => {
-        stateRef.current = { isSessionActive, currentItem, groomingList };
-    }, [isSessionActive, currentItem, groomingList]);
+        isSessionActiveRef.current = isSessionActive;
+    }, [isSessionActive]);
 
     useEffect(() => {
         let timerId;
 
         const poll = async () => {
             try {
-                // Perform consolidated fetch (includes heartbeat)
                 const data = await api.getGroomingState();
-                
-                if (!data) return;
-
-                const {
-                    isSessionActive: serverSessionActive,
-                    currentItem: serverCurrentItem,
-                    scrumMasterId: serverSmId,
-                    groomingList: serverGroomingList,
-                    sessionUsers: serverUsers,
-                    isVotingOpen: serverVotingOpen,
-                    votes: serverVotes,
-                    votesRevealed: serverVotesRevealed
-                } = data;
-
-                // 1. Sync Base State
-                setScrumMasterId(serverSmId);
-                setSessionUsers(serverUsers || []);
-                setIsVotingOpen(!!serverVotingOpen);
-                setVotesRevealed(!!serverVotesRevealed);
-                setVotes(serverVotes || []);
-
-                // 2. Sync Grooming List (if changed)
-                if (JSON.stringify(serverGroomingList) !== JSON.stringify(stateRef.current.groomingList)) {
-                    setGroomingList(serverGroomingList || []);
-                }
-
-                // 3. Sync Session Status
-                if (!!serverSessionActive !== stateRef.current.isSessionActive) {
-                    setIsSessionActive(!!serverSessionActive);
-                    if (!serverSessionActive) {
-                        setMyVote(null);
-                        setVotes([]);
-                        setVotesRevealed(false);
-                    }
-                }
-
-                // 4. Sync Current Item
-                if (serverSessionActive) {
-                    const localItemId = stateRef.current.currentItem?.id;
-                    const serverItemId = serverCurrentItem?.id;
-                    
-                    // RACING CONDITION PROTECTION:
-                    // If we just manually switched items in the last 4 seconds,
-                    // we IGNORE the server's currentItem, as it may still be reporting the old one.
-                    const isRecentlySwitched = (Date.now() - lastActionTime.current) < 4000;
-
-                    if (serverItemId && serverItemId !== localItemId && !isRecentlySwitched) {
-                        setMyVote(null);
-                        setCurrentItem(serverCurrentItem);
-                    }
+                if (data) {
+                    onSyncState(data, { fromPoll: true });
                 }
             } catch (err) {
                 console.error('Polling error:', err);
             } finally {
-                // Schedule next poll based on current visibility and activity
-                const interval = document.visibilityState === 'hidden' 
-                    ? POLLING_INTERVALS.BACKGROUND 
-                    : (stateRef.current.isSessionActive ? POLLING_INTERVALS.ACTIVE : POLLING_INTERVALS.IDLE);
-                
+                const now = Date.now();
+                const timeSinceAction = now - lastActionTime.current;
+                const inBackoff = timeSinceAction < BACKOFF_MS;
+
+                let interval;
+                if (inBackoff) {
+                    interval = BACKOFF_INTERVAL_MS;
+                } else if (document.visibilityState === 'hidden') {
+                    interval = POLLING_INTERVALS.BACKGROUND;
+                } else {
+                    interval = isSessionActiveRef.current ? POLLING_INTERVALS.ACTIVE : POLLING_INTERVALS.IDLE;
+                }
+
                 timerId = setTimeout(poll, interval);
             }
         };
 
-        // Start the polling loop
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                if (timerId) clearTimeout(timerId);
+                poll();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
         timerId = setTimeout(poll, POLLING_INTERVALS.IDLE);
 
-        return () => clearTimeout(timerId);
-    }, [
-        // We only want to restart the loop if the setter functions change (which they shouldn't)
-        // or if the component mounts/unmounts.
-        setScrumMasterId, 
-        setGroomingList, 
-        setIsSessionActive, 
-        setMyVote, 
-        setVotes, 
-        setVotesRevealed, 
-        setCurrentItem,
-        setSessionUsers,
-        setIsVotingOpen
-    ]);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            clearTimeout(timerId);
+        };
+    }, [onSyncState, lastActionTime]);
 };

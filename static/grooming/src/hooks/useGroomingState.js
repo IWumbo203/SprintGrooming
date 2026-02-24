@@ -91,8 +91,14 @@ export const useGroomingState = () => {
     // Master map for O(1) description lookup
     const issueMap = new Map(fullBacklog.map(item => [item.id, item]));
 
-    // Track last manual action time to avoid "race condition" jump-backs
+    // Track last manual action time to avoid "race condition" jump-backs and for poll back-off
     const lastActionTime = useRef(0);
+
+    // Ref for applyServerState so we can read current state without stale closures
+    const stateRef = useRef({ isSessionActive, currentItem, groomingList });
+    useEffect(() => {
+        stateRef.current = { isSessionActive, currentItem, groomingList };
+    }, [isSessionActive, currentItem, groomingList]);
 
     const updateCurrentItem = useCallback((serverItem) => {
         if (!serverItem) {
@@ -108,21 +114,61 @@ export const useGroomingState = () => {
         }
     }, [fullBacklog]);
 
-    useSessionPolling(
-        isSessionActive, 
-        currentItem, 
-        groomingList, 
-        setScrumMasterId, 
-        setGroomingList, 
-        setIsSessionActive, 
-        setMyVote, 
-        setVotes, 
-        setVotesRevealed, 
-        updateCurrentItem,
-        setSessionUsers,
-        setIsVotingOpen,
-        lastActionTime // Pass the ref to the poller
-    );
+    /**
+     * Single place to apply server state (from poll or from mutation response).
+     * When fromPoll is true, uses the 4s "recent manual switch" guard for currentItem.
+     * Enriches currentItem with description from local issueMap.
+     */
+    const applyServerState = useCallback((data, { fromPoll = false } = {}) => {
+        if (!data) return;
+
+        const {
+            isSessionActive: serverSessionActive,
+            currentItem: serverCurrentItem,
+            scrumMasterId: serverSmId,
+            groomingList: serverGroomingList,
+            sessionUsers: serverUsers,
+            isVotingOpen: serverVotingOpen,
+            votes: serverVotes,
+            votesRevealed: serverVotesRevealed
+        } = data;
+
+        setScrumMasterId(serverSmId);
+        setSessionUsers(serverUsers || []);
+        setIsVotingOpen(!!serverVotingOpen);
+        setVotesRevealed(!!serverVotesRevealed);
+        setVotes(serverVotes || []);
+
+        if (JSON.stringify(serverGroomingList) !== JSON.stringify(stateRef.current.groomingList)) {
+            setGroomingList(serverGroomingList || []);
+        }
+
+        if (!!serverSessionActive !== stateRef.current.isSessionActive) {
+            setIsSessionActive(!!serverSessionActive);
+            if (!serverSessionActive) {
+                setMyVote(null);
+                setVotes([]);
+                setVotesRevealed(false);
+            }
+        }
+
+        if (serverSessionActive && serverCurrentItem) {
+            const localItemId = stateRef.current.currentItem?.id;
+            const serverItemId = serverCurrentItem?.id;
+            const isRecentlySwitched = (Date.now() - lastActionTime.current) < 4000;
+
+            if (fromPoll && serverItemId === localItemId) return;
+            if (fromPoll && isRecentlySwitched && serverItemId !== localItemId) return;
+
+            setMyVote(null);
+            updateCurrentItem(serverCurrentItem);
+        } else if (serverSessionActive && !serverCurrentItem) {
+            setCurrentItem(null);
+            setMyVote(null);
+        }
+    }, [updateCurrentItem]);
+
+    useSessionPolling(applyServerState, lastActionTime, isSessionActive);
 
     const onDragEnd = async (result) => {
         const { source, destination } = result;
@@ -142,53 +188,79 @@ export const useGroomingState = () => {
 
         setBacklog(newBacklog);
         setGroomingList(newGrooming);
-        await api.updateGroomingList(newGrooming);
+        try {
+            const state = await api.updateGroomingList(newGrooming);
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
+        } catch (err) {
+            console.error('Failed to update grooming list:', err);
+        }
     };
 
     const startSession = async () => {
         if (groomingList.length === 0) return;
-        await api.startSession();
-        setIsSessionActive(true);
-        setMyVote(null);
-        setVotesRevealed(false);
-        updateCurrentItem(groomingList[0]);
+        try {
+            const state = await api.startSession();
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
+        } catch (err) {
+            console.error('Failed to start session:', err);
+        }
     };
 
     const endSession = async () => {
-        await api.endSession();
-        setIsSessionActive(false);
-        setMyVote(null);
-        setVotesRevealed(false);
+        try {
+            const state = await api.endSession();
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
+        } catch (err) {
+            console.error('Failed to end session:', err);
+        }
     };
 
     const handleVote = async (value) => {
         if (!currentItem || currentUserId === scrumMasterId) return;
         setMyVote(value);
-        await api.submitVote(currentItem.id, value);
+        try {
+            const state = await api.submitVote(currentItem.id, value);
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
+        } catch (err) {
+            console.error('Failed to submit vote:', err);
+        }
     };
 
     const revealVotes = async () => {
-        await api.revealVotes();
-        setVotesRevealed(true);
+        try {
+            const state = await api.revealVotes();
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
+        } catch (err) {
+            console.error('Failed to reveal votes:', err);
+        }
     };
 
     const openVoting = async () => {
-        await api.openVoting();
-        setIsVotingOpen(true);
+        try {
+            const state = await api.openVoting();
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
+        } catch (err) {
+            console.error('Failed to open voting:', err);
+        }
     };
 
     const selectNextItem = async (item) => {
-        // 1. Mark the time of this manual action
         lastActionTime.current = Date.now();
-        
-        // 2. Instant Switch: Update local state immediately from memory
         updateCurrentItem(item);
         setMyVote(null);
         setVotes([]);
         setVotesRevealed(false);
-        
+
         try {
-            await api.setCurrentItem(item);
+            const state = await api.setCurrentItem(item);
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
         } catch (err) {
             console.error('Failed to select next item:', err);
         }
@@ -214,7 +286,9 @@ export const useGroomingState = () => {
             );
             
             setGroomingList(updatedList);
-            await api.updateGroomingList(updatedList);
+            const state = await api.updateGroomingList(updatedList);
+            if (state) applyServerState(state, { fromPoll: false });
+            lastActionTime.current = Date.now();
 
             try {
                 await view.refresh();

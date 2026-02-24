@@ -47,10 +47,11 @@ The app requires the following OAuth scopes:
 This application is designed to be highly efficient to minimize Forge platform costs and ensure stability at scale.
 
 ### 1. Polling & Invocation Costs
-The app uses an adaptive strategy to minimize unnecessary function invocations:
-- **Active Session:** 2-second interval (high interactivity).
-- **Idle Backlog:** 5-second interval.
-- **Background Tab:** 15-second interval 
+The app uses an event-driven client strategy to minimize `getGroomingState` invocations:
+- **State from mutations:** Mutating resolvers (start/end session, set current item, vote, reveal, open voting, update list) return the full grooming state. The acting client applies this immediately, so it does not rely on the next poll to see the result.
+- **Back-off after actions:** For 3 seconds after a user action, the next poll uses a 5-second interval instead of the normal 2-second active interval, avoiding redundant polls right after the client already received state from the mutation.
+- **Visibility refetch:** When the tab becomes visible again, the app triggers one immediate sync so returning users see up-to-date state without waiting for the next scheduled poll.
+- **Adaptive intervals:** Active session (tab visible): 2-second interval; idle backlog: 5-second interval; background tab: 15-second interval.
 
 ### 2. Storage Efficiency (32KB Limit)
 Forge Storage has a strict 32KB limit per key. To prevent crashes:

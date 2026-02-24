@@ -25,8 +25,15 @@ export const isSessionActive = async () => {
     return true;
 };
 
-export const getGroomingState = async (req) => {
-    await heartbeat(req);
+/**
+ * Builds the full grooming state from storage. Optionally runs heartbeat when req is provided
+ * so the calling user stays in presence. Used by getGroomingState and by mutating resolvers
+ * so they can return full state and the client can skip redundant polls.
+ */
+export const buildGroomingState = async (req) => {
+    if (req) {
+        await heartbeat(req);
+    }
 
     const [
         active,
@@ -75,6 +82,10 @@ export const getGroomingState = async (req) => {
     };
 };
 
+export const getGroomingState = async (req) => {
+    return buildGroomingState(req);
+};
+
 export const startSession = async (req) => {
     const { accountId } = req.context;
     const now = Date.now();
@@ -92,10 +103,10 @@ export const startSession = async (req) => {
     if (list.length > 0) {
         await storage.set(CURRENT_ITEM_KEY, list[0]);
     }
-    return true;
+    return buildGroomingState(req);
 };
 
-export const endSession = async () => {
+export const endSession = async (req) => {
     await storage.set(SESSION_ACTIVE_KEY, false);
     await storage.delete(SCRUM_MASTER_KEY);
     await storage.delete(REVEALED_KEY);
@@ -108,7 +119,7 @@ export const endSession = async () => {
     }
 
     await storage.delete(CURRENT_ITEM_KEY);
-    return false;
+    return buildGroomingState(req);
 };
 
 export const getScrumMaster = async () => {
