@@ -61,10 +61,16 @@ Forge Storage has a strict 32KB limit per key. To prevent crashes:
 - **Initial Load:** Optimized to just **2 parallel calls** (Backlog + Session State).
 - **Metadata Caching:** The "Story Point" field ID is discovered once during the backlog fetch and shared with the rest of the app to avoid redundant Jira API lookups.
 
-### 4. Billing Considerations for Enterprise
-- **Marketplace Billing:** If distributed, Atlassian handles per-user licensing.
-- **No Infrastructure Cost:** As a Forge app, there are no server, database, or maintenance costs for the enterprise; all compute is hosted by Atlassian.
-- **Data Residency:** Fully compliant with Atlassian's data residency, as all session data stays within the Forge Storage environment.
+### 4. Billing Considerations
+| Capability | Unit | Free usage allowance (monthly) | Overage price per unit ($USD) |
+| :--- | :--- | :--- | :--- |
+| **Forge Functions: Duration** | $/GB-seconds | 100,000 GB-seconds | 0.000025 |
+| **Key-Value Store: Reads** | $/GB | 0.1 GB | 0.055 |
+| **Key-Value Store: Writes** | $/GB | 0.1 GB | 1.090 |
+| **Logs: Writes** | $/GB | 1 GB | 1.005 |
+| **SQL: Compute duration** | $/hr | 1 hr | 0.143 |
+| **SQL: Compute requests** | $/1M-requests | 100,000 requests | 1.929 |
+| **SQL: Data stored** | $/GB-hours | 730 GB-hours | 0.00076850 |
 
 ## Development and Deployment
 
