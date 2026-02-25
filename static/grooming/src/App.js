@@ -7,28 +7,32 @@ import './styles/Common.css';
 function App() {
     const { state, actions } = useGroomingState();
 
-    if (state.error) return <div className="error-message">{state.error}</div>;
-    if (state.loading) return <div className="status-message">Loading...</div>;
+    if (state.error) return <div className="app-frame"><div className="error-message">{state.error}</div></div>;
+    if (state.loading) return <div className="app-frame"><div className="status-message">Loading...</div></div>;
 
     const isSM = state.currentUserId === state.scrumMasterId;
 
     if (state.isSessionActive && state.currentItem) {
         return (
-            <GroomingSession 
-                {...state}
-                {...actions}
-                isSM={isSM}
-            />
+            <div className="app-frame">
+                <GroomingSession 
+                    {...state}
+                    {...actions}
+                    isSM={isSM}
+                />
+            </div>
         );
     }
 
     return (
-        <BacklogView 
-            backlog={state.backlog}
-            groomingList={state.groomingList}
-            onDragEnd={actions.onDragEnd}
-            startSession={actions.startSession}
-        />
+        <div className="app-frame">
+            <BacklogView 
+                backlog={state.backlog}
+                groomingList={state.groomingList}
+                onDragEnd={actions.onDragEnd}
+                startSession={actions.startSession}
+            />
+        </div>
     );
 }
 
