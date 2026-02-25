@@ -1,4 +1,4 @@
-# Sprint Grooming Forge App
+# Sprint Grooming App
 
 ## Overview
 This Jira Forge application facilitates collaborative sprint grooming sessions. It allows a Scrum Master to select items from the backlog, lead a real-time voting session where team members estimate story points, and apply those points directly to Jira issues.
@@ -61,6 +61,7 @@ Forge Storage has a strict 32KB limit per key. To prevent crashes:
 - **Initial Load:** Optimized to just **2 parallel calls** (Backlog + Session State).
 - **Metadata Caching:** The "Story Point" field ID is discovered once during the backlog fetch and shared with the rest of the app to avoid redundant Jira API lookups.
 
+<<<<<<< HEAD
 ### 4. Billing Considerations
 | Capability | Unit | Free usage allowance (monthly) | Overage price per unit ($USD) |
 | :--- | :--- | :--- | :--- |
@@ -88,3 +89,9 @@ Forge Storage has a strict 32KB limit per key. To prevent crashes:
 - `src/resolvers/`: Modularized backend logic.
 - `static/grooming/src/`: React frontend with optimized hooks.
 - `manifest.yml`: App configuration and permissions.
+=======
+### 4. Billing Considerations for Enterprise
+- **Marketplace Billing:** If distributed, Atlassian handles per-user licensing.
+- **No Infrastructure Cost:** As a Forge app, there are no server, database, or maintenance costs for the enterprise; all compute is hosted by Atlassian.
+- **Data Residency:** Fully compliant with Atlassian's data residency, as all session data stays within the Forge Storage environment.
+>>>>>>> d3c2cfb0119fa0a1120cde60708c055b1651a35f
