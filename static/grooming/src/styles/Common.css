@@ -1,3 +1,23 @@
+/* Center the app in the space allocated by Jira (iframe/panel) */
+#root {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.app-frame {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+}
+
+.app-frame > * {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .issue-card {
     padding: 0.625rem;
     margin: 0 0 0.5rem 0;

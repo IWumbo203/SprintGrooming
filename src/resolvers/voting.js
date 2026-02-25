@@ -1,5 +1,5 @@
 import api, { route, storage } from '@forge/api';
-import { VOTES_PREFIX, REVEALED_KEY, SCRUM_MASTER_KEY } from './session';
+import { VOTES_PREFIX, REVEALED_KEY, SCRUM_MASTER_KEY, buildGroomingState } from './session';
 
 export const submitVote = async (req) => {
     const { itemId, vote } = req.payload;
@@ -28,7 +28,7 @@ export const submitVote = async (req) => {
     // Store both vote value and display name
     votes[accountId] = { vote, displayName };
     await storage.set(votesKey, votes);
-    return votes;
+    return buildGroomingState(req);
 };
 
 export const getVotes = async (req) => {
@@ -56,7 +56,7 @@ export const getVotes = async (req) => {
     return { votes: voteList, revealed };
 };
 
-export const revealVotes = async () => {
+export const revealVotes = async (req) => {
     await storage.set(REVEALED_KEY, true);
-    return true;
+    return buildGroomingState(req);
 };
