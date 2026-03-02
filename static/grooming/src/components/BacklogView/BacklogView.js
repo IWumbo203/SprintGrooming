@@ -4,9 +4,20 @@ import IssueCard from '../IssueCard';
 import '../../styles/BacklogView.css';
 import '../../styles/Common.css';
 
-const BacklogView = ({ backlog, groomingList, onDragEnd, startSession }) => {
+const BacklogView = ({ backlog, groomingList, onDragEnd, startSession, labelFilter, onLabelFilterChange }) => {
     return (
         <DragDropContext onDragEnd={onDragEnd}>
+            <div className="backlog-view">
+                <div className="backlog-label-search">
+                    <input
+                        type="text"
+                        className="label-search-input"
+                        placeholder="Filter by label (e.g. Ready-For-Grooming)"
+                        value={labelFilter || ''}
+                        onChange={(e) => onLabelFilterChange && onLabelFilterChange(e.target.value)}
+                        aria-label="Filter backlog by label"
+                    />
+                </div>
             <div className="backlog-container">
                 <div className="backlog-column">
                     <h3 className="column-title">Backlog</h3>
@@ -39,6 +50,7 @@ const BacklogView = ({ backlog, groomingList, onDragEnd, startSession }) => {
                     </button>
                     <p className="sm-notice-text">Only the Scrum Master should press the button</p>
                 </div>
+            </div>
             </div>
         </DragDropContext>
     );

@@ -31,6 +31,8 @@ function App() {
                 groomingList={state.groomingList}
                 onDragEnd={actions.onDragEnd}
                 startSession={actions.startSession}
+                labelFilter={state.labelFilter}
+                onLabelFilterChange={actions.setLabelFilter}
             />
         </div>
     );

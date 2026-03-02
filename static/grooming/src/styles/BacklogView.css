@@ -1,7 +1,36 @@
+.backlog-view {
+    padding: 0.625rem;
+}
+
+.backlog-label-search {
+    margin-bottom: 0.75rem;
+}
+
+.label-search-input {
+    width: 100%;
+    max-width: 20rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #dfe1e6;
+    border-radius: 0.25rem;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.label-search-input:focus {
+    outline: none;
+    border-color: #0052cc;
+    box-shadow: 0 0 0 1px #0052cc;
+}
+
+.label-search-input::placeholder {
+    color: #6b778c;
+}
+
 .backlog-container {
     display: flex;
     gap: 1.25rem;
-    padding: 0.625rem;
+    padding: 0.625rem 0 0 0;
 }
 
 .backlog-column {

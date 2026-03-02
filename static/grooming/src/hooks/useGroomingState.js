@@ -21,6 +21,7 @@ export const useGroomingState = () => {
     const [sessionUsers, setSessionUsers] = useState([]);
     const [isVotingOpen, setIsVotingOpen] = useState(false);
     const [siteUrl, setSiteUrl] = useState('');
+    const [labelFilter, setLabelFilter] = useState('');
 
     const init = useCallback(async () => {
         try {
@@ -82,11 +83,22 @@ export const useGroomingState = () => {
         init();
     }, [init]);
 
-    // Sync filtered backlog whenever fullBacklog or groomingList changes
+    // Sync filtered backlog whenever fullBacklog, groomingList, or labelFilter changes.
+    // Exclude issues already in grooming selection; then filter by label if user typed a search.
     useEffect(() => {
         const groomingIds = new Set(groomingList.map(item => item.id));
-        setBacklog(fullBacklog.filter(item => !groomingIds.has(item.id)));
-    }, [fullBacklog, groomingList]);
+        let list = fullBacklog.filter(item => !groomingIds.has(item.id));
+
+        const trimmedLabel = (labelFilter || '').trim().toLowerCase();
+        if (trimmedLabel) {
+            list = list.filter(item => {
+                const labels = item.labels || [];
+                return labels.some(l => (l || '').toLowerCase().includes(trimmedLabel));
+            });
+        }
+
+        setBacklog(list);
+    }, [fullBacklog, groomingList, labelFilter]);
 
     // Master map for O(1) description lookup
     const issueMap = new Map(fullBacklog.map(item => [item.id, item]));
@@ -323,7 +335,8 @@ export const useGroomingState = () => {
             updating,
             sessionUsers,
             isVotingOpen,
-            siteUrl
+            siteUrl,
+            labelFilter
         },
         actions: {
             onDragEnd,
@@ -333,7 +346,8 @@ export const useGroomingState = () => {
             revealVotes,
             openVoting,
             selectNextItem,
-            applyPoints
+            applyPoints,
+            setLabelFilter
         }
     };
 };

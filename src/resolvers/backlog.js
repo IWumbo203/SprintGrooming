@@ -28,7 +28,7 @@ export const getBacklog = async (req) => {
         },
         body: JSON.stringify({
             jql: jql,
-            fields: ['summary', 'issuetype', 'priority', 'description', storyPointFieldId]
+            fields: ['summary', 'issuetype', 'priority', 'description', storyPointFieldId, 'labels']
         })
     });
     
@@ -45,7 +45,8 @@ export const getBacklog = async (req) => {
         description: issue.fields.description,
         type: issue.fields.issuetype.name,
         priority: issue.fields.priority?.name || 'Medium',
-        points: issue.fields[storyPointFieldId]
+        points: issue.fields[storyPointFieldId],
+        labels: issue.fields.labels || []
     }));
 
     return { issues, storyPointFieldId };
