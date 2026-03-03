@@ -300,18 +300,23 @@
     padding: 0.625rem 0.75rem;
     border-radius: 0.5rem;
     border: 0.0625rem solid #ddd;
+    min-height: 2.5rem;
 }
 
 .results-average-label {
     font-weight: 600;
     color: #172b4d;
     font-size: 0.9rem;
+    line-height: 2.25rem;
+    display: flex;
+    align-items: center;
 }
 
 .results-average-box-wrap {
     display: flex;
     align-items: center;
     gap: 0;
+    line-height: 0;
 }
 
 .results-average-btn {
@@ -320,7 +325,7 @@
     min-width: 2.25rem;
     min-height: 2.25rem;
     padding: 0;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: bold;
     line-height: 1;
     border: 0.0625rem solid #0052cc;
@@ -334,6 +339,12 @@
     box-sizing: border-box;
 }
 
+/* Ensure minus/plus symbols are visible (explicit color for high contrast) */
+.results-average-btn-minus,
+.results-average-btn-plus {
+    color: #0052cc;
+}
+
 .results-average-btn:hover:not(:disabled) {
     background: #0052cc;
     color: #fff;
@@ -342,6 +353,7 @@
 .results-average-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    color: #0052cc;
 }
 
 .results-average-btn-minus {

@@ -74,44 +74,48 @@ const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints }) => {
                 })}
             </div>
 
-            {/* True average shown; +/- let SM select floor or ceil as story points */}
+            {/* Average: non-SM see only "Average: X"; SM sees label, +/- and Apply */}
             {hasNumeric && (
                 <div className="results-average-row">
-                    <span className="results-average-label">Average: {average.toFixed(1)}</span>
-                    <div className="results-average-box-wrap">
-                        <button
-                            type="button"
-                            className="results-average-btn results-average-btn-minus"
-                            onClick={handleDecrement}
-                            disabled={updating || roundedValue <= MIN_POINTS}
-                            title="Decrease (min 0)"
-                            aria-label="Decrease points"
-                        >
-                            −
-                        </button>
-                        <div className="results-average-box">
-                            <span className="results-average-rounded">{roundedValue}</span>
-                        </div>
-                        <button
-                            type="button"
-                            className="results-average-btn results-average-btn-plus"
-                            onClick={handleIncrement}
-                            disabled={updating || roundedValue >= MAX_POINTS}
-                            title="Increase (max 21)"
-                            aria-label="Increase points"
-                        >
-                            +
-                        </button>
-                    </div>
-                    {isSM && (
-                        <button
-                            type="button"
-                            disabled={updating}
-                            onClick={handleApplyRounded}
-                            className="btn-primary btn-apply-point"
-                        >
-                            {updating ? 'Updating...' : 'APPLY'}
-                        </button>
+                    {isSM ? (
+                        <>
+                            <span className="results-average-label">Average: {average.toFixed(1)}</span>
+                            <div className="results-average-box-wrap">
+                                <button
+                                    type="button"
+                                    className="results-average-btn results-average-btn-minus"
+                                    onClick={handleDecrement}
+                                    disabled={updating || roundedValue <= MIN_POINTS}
+                                    title="Decrease (min 0)"
+                                    aria-label="Decrease points"
+                                >
+                                    −
+                                </button>
+                                <div className="results-average-box">
+                                    <span className="results-average-rounded">{roundedValue}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="results-average-btn results-average-btn-plus"
+                                    onClick={handleIncrement}
+                                    disabled={updating || roundedValue >= MAX_POINTS}
+                                    title="Increase (max 21)"
+                                    aria-label="Increase points"
+                                >
+                                    +
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                disabled={updating}
+                                onClick={handleApplyRounded}
+                                className="btn-primary btn-apply-point"
+                            >
+                                {updating ? 'Updating...' : 'APPLY'}
+                            </button>
+                        </>
+                    ) : (
+                        <span className="results-average-label">Average: {average.toFixed(1)}</span>
                     )}
                 </div>
             )}

@@ -1,7 +1,3 @@
-.backlog-view {
-    padding: 0.625rem;
-}
-
 .backlog-label-search {
     margin-bottom: 0.75rem;
 }
@@ -31,6 +27,12 @@
     display: flex;
     gap: 1.25rem;
     padding: 0.625rem 0 0 0;
+}
+
+.backlog-column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .backlog-column {

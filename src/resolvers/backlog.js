@@ -4,22 +4,23 @@ export const getBacklog = async (req) => {
     const { context } = req;
     const projectKey = context.extension.project.key;
 
-    // Use a hard-coded default or a faster way to find the field ID
-    // Most Jira Cloud instances use customfield_10016 for story points
-    // We fetch it once but could theoretically optimize this further
+    // Discover story points field by name (no hardcoded ID — varies by site).
     const fieldResponse = await api.asUser().requestJira(route`/rest/api/3/field`);
-    let storyPointFieldId = 'customfield_10016';
+    let storyPointFieldId = null;
     if (fieldResponse.ok) {
         const fields = await fieldResponse.json();
-        const field = fields.find(f => 
-            f.name.toLowerCase() === 'story points' || 
-            f.name.toLowerCase() === 'story point estimate'
-        );
+        const field = fields.find(f => {
+            const name = (f.name || '').toLowerCase();
+            return name.includes('story point') || name.includes('point estimate');
+        });
         if (field) storyPointFieldId = field.id;
     }
 
+    const requestFields = ['summary', 'issuetype', 'priority', 'description', 'labels'];
+    if (storyPointFieldId) requestFields.push(storyPointFieldId);
+
     const jql = `project = "${projectKey}" AND statusCategory != Done AND sprint is EMPTY`;
-    
+
     const response = await api.asUser().requestJira(route`/rest/api/3/search/jql`, {
         method: 'POST',
         headers: {
@@ -28,7 +29,7 @@ export const getBacklog = async (req) => {
         },
         body: JSON.stringify({
             jql: jql,
-            fields: ['summary', 'issuetype', 'priority', 'description', storyPointFieldId, 'labels']
+            fields: requestFields
         })
     });
     
@@ -45,7 +46,7 @@ export const getBacklog = async (req) => {
         description: issue.fields.description,
         type: issue.fields.issuetype.name,
         priority: issue.fields.priority?.name || 'Medium',
-        points: issue.fields[storyPointFieldId],
+        points: storyPointFieldId ? issue.fields[storyPointFieldId] : undefined,
         labels: issue.fields.labels || []
     }));
 

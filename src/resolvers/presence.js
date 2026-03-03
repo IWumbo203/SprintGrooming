@@ -1,13 +1,15 @@
 import api, { route, storage } from '@forge/api';
+import { getStorageKey } from './session';
 
 const SESSION_USERS_KEY = 'session-active-users';
 
 export const heartbeat = async (req) => {
     const { accountId } = req.context;
     const now = Date.now();
-    
-    // Get current active users
-    let users = await storage.get(SESSION_USERS_KEY) || {};
+    const key = getStorageKey(req, SESSION_USERS_KEY);
+
+    // Get current active users (per-project)
+    let users = await storage.get(key) || {};
     
     // Fetch user details if not already in the session cache or if it's been a while
     if (!users[accountId] || (now - users[accountId].lastFetch > 3600000)) { // Refresh profile every hour
@@ -35,12 +37,13 @@ export const heartbeat = async (req) => {
         }
     });
 
-    await storage.set(SESSION_USERS_KEY, cleanedUsers);
+    await storage.set(key, cleanedUsers);
     return true;
 };
 
-export const getSessionUsers = async () => {
-    const users = await storage.get(SESSION_USERS_KEY) || {};
+export const getSessionUsers = async (req) => {
+    const key = getStorageKey(req, SESSION_USERS_KEY);
+    const users = await storage.get(key) || {};
     const now = Date.now();
     const activeThreshold = now - 180000;
 

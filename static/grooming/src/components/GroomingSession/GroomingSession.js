@@ -46,7 +46,7 @@ const GroomingSession = ({
 
                     {!isSM && (
                         <VotingArea 
-                            isVotingOpen={isVotingOpen} 
+                            isVotingOpen={isVotingOpen && !votesRevealed} 
                             handleVote={handleVote} 
                             myVote={myVote} 
                         />

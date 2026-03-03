@@ -15,6 +15,13 @@ const IssueCard = ({ item, index }) => (
                 <div className="issue-summary">
                     <strong>{item.key}</strong>: {item.summary}
                 </div>
+                {Array.isArray(item.labels) && item.labels.length > 0 && (
+                    <div className="issue-card-labels">
+                        {item.labels.slice(0, 3).map((label) => (
+                            <span key={label} className="issue-card-label">{label}</span>
+                        ))}
+                    </div>
+                )}
                 {item.points !== undefined && item.points !== null && (
                     <div className="issue-points-badge">
                         {item.points}
