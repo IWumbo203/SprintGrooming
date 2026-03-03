@@ -8,24 +8,25 @@ import ResultsArea from './ResultsArea';
 import '../../styles/GroomingSession.css';
 import '../../styles/Common.css';
 
-const GroomingSession = ({ 
-    currentItem, 
-    isSM, 
+const GroomingSession = ({
+    currentItem,
+    isSM,
     scrumMasterId,
-    endSession, 
-    myVote, 
-    handleVote, 
-    votes, 
-    votesRevealed, 
-    revealVotes, 
-    groomingList, 
-    selectNextItem, 
-    applyPoints, 
+    endSession,
+    myVote,
+    handleVote,
+    votes,
+    votesRevealed,
+    revealVotes,
+    groomingList,
+    selectNextItem,
+    applyPoints,
     updating,
     sessionUsers,
     isVotingOpen,
     openVoting,
-    siteUrl
+    siteUrl,
+    storyPointFieldId
 }) => {
     // Filter out the Scrum Master from the team members list
     const teamMembers = (sessionUsers || []).filter(u => u.accountId !== scrumMasterId);
@@ -77,7 +78,8 @@ const GroomingSession = ({
                                     groupedVotes={groupedVotes} 
                                     isSM={isSM} 
                                     updating={updating} 
-                                    applyPoints={applyPoints} 
+                                    applyPoints={applyPoints}
+                                    hasStoryPointField={!!storyPointFieldId}
                                 />
                             )}
                         </div>

@@ -28,6 +28,7 @@ function App() {
         <div className="app-frame">
             <BacklogView 
                 backlog={state.backlog}
+                sprints={state.sprints}
                 groomingList={state.groomingList}
                 onDragEnd={actions.onDragEnd}
                 startSession={actions.startSession}

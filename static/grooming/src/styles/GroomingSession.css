@@ -303,6 +303,13 @@
     min-height: 2.5rem;
 }
 
+.results-no-points-field {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: #6b778c;
+    font-style: italic;
+}
+
 .results-average-label {
     font-weight: 600;
     color: #172b4d;

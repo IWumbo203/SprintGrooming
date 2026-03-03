@@ -3,10 +3,16 @@ import api, { route } from '@forge/api';
 /**
  * Returns true if the field name looks like a story points field (broad match for different sites).
  */
-const isStoryPointFieldName = (name) => {
+const isStoryPointFieldNameStrict = (name) => {
     if (!name || typeof name !== 'string') return false;
     const lower = name.toLowerCase();
-    return lower.includes('story point') || lower.includes('point estimate');
+    return lower.includes('story point') || lower.includes('point estimate') || lower === 'story points';
+};
+
+const isStoryPointFieldNameLoose = (name) => {
+    if (!name || typeof name !== 'string') return false;
+    const lower = name.toLowerCase();
+    return lower === 'points' || lower === 'estimate';
 };
 
 export const getStoryPointField = async () => {
@@ -14,8 +20,10 @@ export const getStoryPointField = async () => {
     if (!response.ok) return null;
 
     const fields = await response.json();
-    const field = fields.find(f => isStoryPointFieldName(f.name));
-    return field ? field.id : null;
+    const strict = fields.find(f => isStoryPointFieldNameStrict(f.name));
+    if (strict) return strict.id;
+    const loose = fields.find(f => isStoryPointFieldNameLoose(f.name));
+    return loose ? loose.id : null;
 };
 
 /**

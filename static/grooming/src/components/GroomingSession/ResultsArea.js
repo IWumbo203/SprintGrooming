@@ -30,7 +30,7 @@ function useNumericAverage(groupedVotes) {
     }, [groupedVotes]);
 }
 
-const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints }) => {
+const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints, hasStoryPointField = true }) => {
     const entries = Object.entries(groupedVotes).sort((a, b) => sortOrder(a[0]) - sortOrder(b[0]));
     const { average, hasNumeric } = useNumericAverage(groupedVotes);
 
@@ -117,6 +117,12 @@ const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints }) => {
                         <span className="results-average-label">Average: {average.toFixed(1)}</span>
                     )}
                 </div>
+            )}
+
+            {!hasStoryPointField && (
+                <p className="results-no-points-field">
+                    This project has no Story Points field. Estimates are saved in this session only.
+                </p>
             )}
 
             {/* Legacy per-value Apply: optional compact row for non-numeric (☕, ∞) only */}

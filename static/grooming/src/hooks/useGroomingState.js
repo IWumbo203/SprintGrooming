@@ -4,8 +4,8 @@ import * as api from '../services/api';
 import { useSessionPolling } from './useSessionPolling';
 
 export const useGroomingState = () => {
+    const [sprints, setSprints] = useState([]);
     const [backlog, setBacklog] = useState([]);
-    const [fullBacklog, setFullBacklog] = useState([]);
     const [groomingList, setGroomingList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isSessionActive, setIsSessionActive] = useState(false);
@@ -33,16 +33,16 @@ export const useGroomingState = () => {
             const url = context.siteUrl || hostUrl || '';
             setSiteUrl(url);
 
-            // Parallel load: Backlog (Master Data) + Current Session State (Consolidated)
+            // Parallel load: Backlog (sprints + first page) + Current Session State (Consolidated)
             const [backlogResult, sessionState] = await Promise.all([
                 api.getBacklog(),
                 api.getGroomingState()
             ]);
-            
-            const backlogItems = backlogResult?.issues || [];
+
             const fieldId = backlogResult?.storyPointFieldId;
             setStoryPointFieldId(fieldId);
-            setFullBacklog(backlogItems);
+            setSprints(backlogResult?.sprints ?? []);
+            setBacklog(backlogResult?.backlog ?? []);
 
             if (sessionState) {
                 const {
@@ -63,9 +63,12 @@ export const useGroomingState = () => {
                 setSessionUsers(serverUsers || []);
                 setVotes(serverVotes || []);
                 setVotesRevealed(!!serverRevealed);
-                
-                // Use the map we just built to enrich the current item
-                const issueMap = new Map(backlogItems.map(item => [item.id, item]));
+
+                const allIssues = [
+                    ...(backlogResult?.sprints || []).flatMap(s => s.issues || []),
+                    ...(backlogResult?.backlog || [])
+                ];
+                const issueMap = new Map(allIssues.map(item => [item.id, item]));
                 if (serverItem) {
                     const fullItem = issueMap.get(serverItem.id);
                     setCurrentItem(fullItem ? { ...serverItem, description: fullItem.description } : serverItem);
@@ -83,25 +86,23 @@ export const useGroomingState = () => {
         init();
     }, [init]);
 
-    // Sync filtered backlog whenever fullBacklog, groomingList, or labelFilter changes.
-    // Exclude issues already in grooming selection; then filter by label if user typed a search.
-    useEffect(() => {
-        const groomingIds = new Set(groomingList.map(item => item.id));
-        let list = fullBacklog.filter(item => !groomingIds.has(item.id));
+    // Display backlog: exclude items in grooming, then apply label filter.
+    const groomingIdsForBacklog = new Set(groomingList.map(item => item.id));
+    const trimmedLabel = (labelFilter || '').trim().toLowerCase();
+    const displayBacklog = backlog
+        .filter(item => !groomingIdsForBacklog.has(item.id))
+        .filter(item => {
+            if (!trimmedLabel) return true;
+            const labels = item.labels || [];
+            return labels.some(l => (l || '').toLowerCase().includes(trimmedLabel));
+        });
 
-        const trimmedLabel = (labelFilter || '').trim().toLowerCase();
-        if (trimmedLabel) {
-            list = list.filter(item => {
-                const labels = item.labels || [];
-                return labels.some(l => (l || '').toLowerCase().includes(trimmedLabel));
-            });
-        }
-
-        setBacklog(list);
-    }, [fullBacklog, groomingList, labelFilter]);
-
-    // Master map for O(1) description lookup
-    const issueMap = new Map(fullBacklog.map(item => [item.id, item]));
+    // Master map for O(1) description lookup (all issues from sprints + backlog)
+    const allIssuesForMap = [
+        ...(sprints || []).flatMap(s => s.issues || []),
+        ...backlog
+    ];
+    const issueMap = new Map(allIssuesForMap.map(item => [item.id, item]));
 
     // Track last manual action time to avoid "race condition" jump-backs and for poll back-off
     const lastActionTime = useRef(0);
@@ -124,7 +125,7 @@ export const useGroomingState = () => {
         } else {
             setCurrentItem(serverItem);
         }
-    }, [fullBacklog]);
+    }, [sprints, backlog]);
 
     /**
      * Single place to apply server state (from poll or from mutation response).
@@ -187,18 +188,35 @@ export const useGroomingState = () => {
         if (!destination) return;
         if (source.droppableId === destination.droppableId) return;
 
-        let newBacklog = Array.from(backlog);
-        let newGrooming = Array.from(groomingList);
-
-        if (source.droppableId === 'backlog' && destination.droppableId === 'grooming') {
-            const [removed] = newBacklog.splice(source.index, 1);
-            newGrooming.splice(destination.index, 0, removed);
-        } else if (source.droppableId === 'grooming' && destination.droppableId === 'backlog') {
-            const [removed] = newGrooming.splice(source.index, 1);
-            newBacklog.splice(destination.index, 0, removed);
+        const groomingIds = new Set(groomingList.map(i => i.id));
+        const sprintsDisplay = (sprints || []).map(s => ({
+            ...s,
+            issues: (s.issues || []).filter(i => !groomingIds.has(i.id))
+        }));
+        let removedItem = null;
+        if (source.droppableId === 'backlog') {
+            removedItem = displayBacklog[source.index];
+        } else if (source.droppableId.startsWith('sprint-')) {
+            const sprintId = source.droppableId.replace('sprint-', '');
+            const id = Number(sprintId);
+            const sprint = sprintsDisplay.find(s => s.id === id) || null;
+            const list = sprint?.issues || [];
+            removedItem = list[source.index];
+        } else if (source.droppableId === 'grooming') {
+            removedItem = groomingList[source.index];
         }
 
-        setBacklog(newBacklog);
+        if (!removedItem) return;
+
+        let newGrooming = Array.from(groomingList);
+
+        if (destination.droppableId === 'grooming') {
+            newGrooming.splice(destination.index, 0, removedItem);
+        } else {
+            const idx = newGrooming.findIndex(i => i.id === removedItem.id);
+            if (idx !== -1) newGrooming.splice(idx, 1);
+        }
+
         setGroomingList(newGrooming);
         try {
             const state = await api.updateGroomingList(newGrooming);
@@ -279,49 +297,57 @@ export const useGroomingState = () => {
     };
 
     const applyPoints = async (points) => {
-        if (!currentItem || !storyPointFieldId) {
-            alert("Story Point field not found.");
-            return;
-        }
-        
+        if (!currentItem) return;
+
         if (isNaN(parseFloat(points))) {
             alert("Cannot apply non-numeric points to Jira.");
             return;
         }
 
-        setUpdating(true);
-        try {
-            await api.updateStoryPoints(currentItem.id, storyPointFieldId, points);
-            
-            const updatedList = groomingList.map(item => 
-                item.id === currentItem.id ? { ...item, points } : item
-            );
-            
-            setGroomingList(updatedList);
+        const updatedList = groomingList.map(item =>
+            item.id === currentItem.id ? { ...item, points } : item
+        );
+        setGroomingList(updatedList);
+        lastActionTime.current = Date.now();
+
+        if (storyPointFieldId) {
+            setUpdating(true);
+            try {
+                await api.updateStoryPoints(currentItem.id, storyPointFieldId, points);
+                const state = await api.updateGroomingList(updatedList);
+                if (state) applyServerState(state, { fromPoll: false });
+                try {
+                    await view.refresh();
+                } catch (e) {
+                    console.warn('View refresh failed:', e);
+                }
+            } catch (err) {
+                alert(`Failed to update points in Jira: ${err.message}`);
+                return;
+            } finally {
+                setUpdating(false);
+            }
+        } else {
             const state = await api.updateGroomingList(updatedList);
             if (state) applyServerState(state, { fromPoll: false });
-            lastActionTime.current = Date.now();
+        }
 
-            try {
-                await view.refresh();
-            } catch (e) {
-                console.warn('View refresh failed:', e);
-            }
-
-            const currentIndex = groomingList.findIndex(item => item.id === currentItem.id);
-            if (currentIndex < groomingList.length - 1) {
-                await selectNextItem(groomingList[currentIndex + 1]);
-            }
-        } catch (err) {
-            alert(`Failed to update points: ${err.message}`);
-        } finally {
-            setUpdating(false);
+        const currentIndex = groomingList.findIndex(item => item.id === currentItem.id);
+        if (currentIndex < groomingList.length - 1) {
+            await selectNextItem(groomingList[currentIndex + 1]);
         }
     };
 
+    const groomingIdsDisplay = new Set(groomingList.map(i => i.id));
+    const sprintsDisplay = (sprints || []).map(s => ({
+        ...s,
+        issues: (s.issues || []).filter(i => !groomingIdsDisplay.has(i.id))
+    }));
+
     return {
         state: {
-            backlog,
+            backlog: displayBacklog,
+            sprints: sprintsDisplay,
             groomingList,
             loading,
             isSessionActive,
