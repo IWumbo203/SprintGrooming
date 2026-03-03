@@ -119,12 +119,6 @@ const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints, hasStoryPointF
                 </div>
             )}
 
-            {!hasStoryPointField && (
-                <p className="results-no-points-field">
-                    This project has no Story Points field. Estimates are saved in this session only.
-                </p>
-            )}
-
             {/* Legacy per-value Apply: optional compact row for non-numeric (☕, ∞) only */}
             {entries.some(([point]) => point === '☕' || point === '∞') && isSM && (
                 <div className="revealed-vote-special-apply">

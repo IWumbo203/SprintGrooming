@@ -310,10 +310,21 @@ export const useGroomingState = () => {
         setGroomingList(updatedList);
         lastActionTime.current = Date.now();
 
-        if (storyPointFieldId) {
+        // Use init-discovered field ID, or fallback to resolve at apply time (e.g. if init missed it).
+        let fieldId = storyPointFieldId;
+        if (!fieldId) {
+            try {
+                fieldId = await api.getStoryPointField();
+                if (fieldId) setStoryPointFieldId(fieldId);
+            } catch (e) {
+                console.warn('Could not resolve story point field at apply time:', e);
+            }
+        }
+
+        if (fieldId) {
             setUpdating(true);
             try {
-                await api.updateStoryPoints(currentItem.id, storyPointFieldId, points);
+                await api.updateStoryPoints(currentItem.id, fieldId, points);
                 const state = await api.updateGroomingList(updatedList);
                 if (state) applyServerState(state, { fromPoll: false });
                 try {
@@ -362,7 +373,8 @@ export const useGroomingState = () => {
             sessionUsers,
             isVotingOpen,
             siteUrl,
-            labelFilter
+            labelFilter,
+            storyPointFieldId
         },
         actions: {
             onDragEnd,

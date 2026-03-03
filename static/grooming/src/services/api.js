@@ -9,4 +9,5 @@ export const setCurrentItem = (item) => invoke('setCurrentItem', { item });
 export const openVoting = () => invoke('openVoting');
 export const submitVote = (itemId, vote) => invoke('submitVote', { itemId, vote });
 export const revealVotes = () => invoke('revealVotes');
+export const getStoryPointField = () => invoke('getStoryPointField');
 export const updateStoryPoints = (issueId, fieldId, points) => invoke('updateStoryPoints', { issueId, fieldId, points });

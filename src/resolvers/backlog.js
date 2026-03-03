@@ -1,4 +1,5 @@
 import api, { route } from '@forge/api';
+import { getStoryPointField } from './jira';
 
 /** Max backlog issues to fetch in one request (no pagination). */
 const BACKLOG_MAX_RESULTS = 100;
@@ -24,25 +25,18 @@ function mapIssue(issue, storyPointFieldId) {
 }
 
 /**
- * Discovers custom field IDs for story points and sprint (by name).
+ * Discovers the sprint custom field ID by name.
+ * Story points field is resolved via getStoryPointField (jira.js) for a single discovery path.
  * Uses only /rest/api/3/field — no board/sprint scopes.
  */
-async function discoverFieldIds() {
+async function discoverSprintFieldId() {
     const response = await api.asUser().requestJira(route`/rest/api/3/field`);
-    if (!response.ok) return { storyPointFieldId: null, sprintFieldId: null };
+    if (!response.ok) return null;
     const fields = await response.json();
-    let storyPointFieldId = null;
-    let storyPointFieldIdFallback = null;
     let sprintFieldId = null;
     let sprintFieldIdFallback = null;
     for (const f of fields) {
         const name = (f.name || '').toLowerCase();
-        if (!storyPointFieldId && (name.includes('story point') || name.includes('point estimate') || name === 'story points')) {
-            storyPointFieldId = f.id;
-        }
-        if (!storyPointFieldIdFallback && (name === 'points' || name === 'estimate')) {
-            storyPointFieldIdFallback = f.id;
-        }
         if (name.includes('sprint')) {
             if (name === 'sprint' || name === 'sprint(s)') {
                 sprintFieldId = f.id;
@@ -51,9 +45,7 @@ async function discoverFieldIds() {
             if (!sprintFieldIdFallback) sprintFieldIdFallback = f.id;
         }
     }
-    if (!sprintFieldId && sprintFieldIdFallback) sprintFieldId = sprintFieldIdFallback;
-    if (!storyPointFieldId && storyPointFieldIdFallback) storyPointFieldId = storyPointFieldIdFallback;
-    return { storyPointFieldId, sprintFieldId };
+    return sprintFieldId || sprintFieldIdFallback;
 }
 
 /**
@@ -202,7 +194,10 @@ export const getBacklog = async (req) => {
     const { context } = req;
     const projectKey = context.extension.project.key;
 
-    const { storyPointFieldId, sprintFieldId } = await discoverFieldIds();
+    const [storyPointFieldId, sprintFieldId] = await Promise.all([
+        getStoryPointField(),
+        discoverSprintFieldId()
+    ]);
     const requestFields = ['summary', 'issuetype', 'priority', 'description', 'labels'];
     if (storyPointFieldId) requestFields.push(storyPointFieldId);
 
