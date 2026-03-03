@@ -124,9 +124,7 @@ export const startSession = async (req) => {
     await storage.set(key(LAST_ACTIVITY_KEY), now);
 
     const list = await storage.get(key(GROOMING_LIST_KEY)) || [];
-    for (const item of list) {
-        await storage.delete(key(`${VOTES_PREFIX}${item.id}`));
-    }
+    await Promise.all(list.map((item) => storage.delete(key(`${VOTES_PREFIX}${item.id}`))));
 
     if (list.length > 0) {
         await storage.set(key(CURRENT_ITEM_KEY), list[0]);
@@ -144,9 +142,7 @@ export const endSession = async (req) => {
     await storage.set(key(VOTING_OPEN_KEY), false);
 
     const list = await storage.get(key(GROOMING_LIST_KEY)) || [];
-    for (const item of list) {
-        await storage.delete(key(`${VOTES_PREFIX}${item.id}`));
-    }
+    await Promise.all(list.map((item) => storage.delete(key(`${VOTES_PREFIX}${item.id}`))));
 
     await storage.delete(key(CURRENT_ITEM_KEY));
     return buildGroomingState(req);

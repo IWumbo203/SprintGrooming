@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { getPointExtraClass } from '../../constants';
 import '../../styles/GroomingSession.css';
 
 const sortOrder = (point) => {
@@ -62,9 +63,7 @@ const ResultsArea = ({ groupedVotes, isSM, updating, applyPoints }) => {
             {/* Vote chips: who voted for what so devs can see names per value */}
             <div className="revealed-vote-chips">
                 {entries.map(([point, names]) => {
-                    let extraClass = '';
-                    if (point === '☕') extraClass = 'revealed-vote-badge-tea';
-                    else if (point === '∞') extraClass = 'revealed-vote-badge-infinity';
+                    const extraClass = getPointExtraClass(point, 'revealed-vote-badge');
                     return (
                         <div key={point} className={`revealed-vote-chip ${extraClass}`}>
                             <span className="revealed-vote-chip-value">{point}</span>

@@ -1,4 +1,5 @@
 import React from 'react';
+import PointsBadge from '../PointsBadge';
 import '../../styles/GroomingSession.css';
 import '../../styles/Common.css';
 
@@ -14,11 +15,7 @@ const QueueSidebar = ({ groomingList, currentItem, isSM, onSelectItem }) => (
                     <strong>{item.key}</strong>
                     <div className="queue-item-summary">{item.summary}</div>
                 </div>
-                {item.points !== undefined && item.points !== null && (
-                    <div className="issue-points-badge">
-                        {item.points}
-                    </div>
-                )}
+                <PointsBadge points={item.points} />
             </div>
         ))}
     </div>

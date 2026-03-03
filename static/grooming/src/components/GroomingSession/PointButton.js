@@ -1,11 +1,10 @@
 import React from 'react';
+import { getPointExtraClass } from '../../constants';
 import '../../styles/GroomingSession.css';
 import '../../styles/Common.css';
 
 const PointButton = ({ val, onClick, isSelected }) => {
-    let extraClass = '';
-    if (val === '☕') extraClass = 'point-button-tea';
-    else if (val === '∞') extraClass = 'point-button-infinity';
+    const extraClass = getPointExtraClass(val, 'point-button');
 
     return (
         <button

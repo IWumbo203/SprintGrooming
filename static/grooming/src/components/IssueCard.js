@@ -1,5 +1,6 @@
 import React from 'react';
 import { Draggable } from 'react-beautiful-dnd';
+import PointsBadge from './PointsBadge';
 import '../styles/Common.css';
 
 const IssueCard = ({ item, index }) => (
@@ -22,11 +23,7 @@ const IssueCard = ({ item, index }) => (
                         ))}
                     </div>
                 )}
-                {item.points !== undefined && item.points !== null && (
-                    <div className="issue-points-badge">
-                        {item.points}
-                    </div>
-                )}
+                <PointsBadge points={item.points} />
             </div>
         )}
     </Draggable>

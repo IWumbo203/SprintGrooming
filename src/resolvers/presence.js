@@ -3,6 +3,11 @@ import { getStorageKey } from './session';
 
 const SESSION_USERS_KEY = 'session-active-users';
 
+/**
+ * Updates presence for the current user and cleans stale entries.
+ * Uses a single key with full read-modify-write; for very large sessions
+ * consider per-user keys (e.g. session-users:{accountId}) and aggregate in getSessionUsers.
+ */
 export const heartbeat = async (req) => {
     const { accountId } = req.context;
     const now = Date.now();
