@@ -1,7 +1,6 @@
 import api, { route, storage } from '@forge/api';
-import { VOTES_PREFIX, REVEALED_KEY, SCRUM_MASTER_KEY, getStorageKey, buildGroomingState } from './session';
-
-const SESSION_USERS_KEY = 'session-active-users';
+import { VOTES_PREFIX, REVEALED_KEY, SCRUM_MASTER_KEY, getStorageKey, buildGroomingState, incrementSessionVersion } from './session';
+import { SESSION_USERS_KEY } from './presence';
 
 export const submitVote = async (req) => {
     const { itemId, vote } = req.payload;
@@ -31,6 +30,7 @@ export const submitVote = async (req) => {
     // Store both vote value and display name
     votes[accountId] = { vote, displayName };
     await storage.set(votesKey, votes);
+    await incrementSessionVersion(req);
     return buildGroomingState(req);
 };
 
@@ -62,5 +62,6 @@ export const getVotes = async (req) => {
 
 export const revealVotes = async (req) => {
     await storage.set(getStorageKey(req, REVEALED_KEY), true);
+    await incrementSessionVersion(req);
     return buildGroomingState(req);
 };

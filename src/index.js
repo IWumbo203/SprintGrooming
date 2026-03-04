@@ -1,6 +1,6 @@
 import Resolver from '@forge/resolver';
 import { getBacklog } from './resolvers/backlog';
-import { startSession, endSession, getGroomingState } from './resolvers/session';
+import { startSession, endSession, getGroomingState, getSessionVersion } from './resolvers/session';
 import { getGroomingList, updateGroomingList, setCurrentItem, openVoting } from './resolvers/storage';
 import { submitVote, revealVotes } from './resolvers/voting';
 import { updateStoryPoints, getStoryPointField } from './resolvers/jira';
@@ -11,6 +11,7 @@ resolver.define('getBacklog', getBacklog);
 resolver.define('getGroomingList', getGroomingList);
 resolver.define('updateGroomingList', updateGroomingList);
 resolver.define('getGroomingState', getGroomingState);
+resolver.define('getSessionVersion', getSessionVersion);
 resolver.define('startSession', startSession);
 resolver.define('endSession', endSession);
 resolver.define('setCurrentItem', setCurrentItem);

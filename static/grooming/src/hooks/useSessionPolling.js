@@ -13,11 +13,11 @@ const BACKOFF_MS = 3000;
 const BACKOFF_INTERVAL_MS = 5000;
 
 /**
- * Polls getGroomingState and invokes onSyncState with the result. Uses lastActionTime to back off
- * polling after the user performs a mutation (which returns state). Refetches immediately when
- * the tab becomes visible.
+ * Polls session version first; only fetches full grooming state when version differs from
+ * lastKnownVersion (cache miss). Uses lastActionTime to back off after mutations.
+ * Refetches immediately when the tab becomes visible.
  */
-export const useSessionPolling = (onSyncState, lastActionTime, isSessionActive) => {
+export const useSessionPolling = (onSyncState, lastActionTime, isSessionActive, lastKnownVersion) => {
     const isSessionActiveRef = useRef(isSessionActive);
     useEffect(() => {
         isSessionActiveRef.current = isSessionActive;
@@ -28,9 +28,14 @@ export const useSessionPolling = (onSyncState, lastActionTime, isSessionActive) 
 
         const poll = async () => {
             try {
-                const data = await api.getGroomingState();
-                if (data) {
-                    onSyncState(data, { fromPoll: true });
+                const { version } = await api.getSessionVersion() || {};
+                const known = lastKnownVersion?.current;
+                // Refetch full state only when version changed or we have no cached version
+                if (version !== known) {
+                    const data = await api.getGroomingState();
+                    if (data) {
+                        onSyncState(data, { fromPoll: true });
+                    }
                 }
             } catch (err) {
                 console.error('Polling error:', err);
@@ -66,5 +71,5 @@ export const useSessionPolling = (onSyncState, lastActionTime, isSessionActive) 
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             clearTimeout(timerId);
         };
-    }, [onSyncState, lastActionTime]);
+    }, [onSyncState, lastActionTime, lastKnownVersion]);
 };

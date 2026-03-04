@@ -9,6 +9,7 @@ export const REVEALED_KEY = 'votes-revealed';
 export const VOTES_PREFIX = 'votes-';
 export const VOTING_OPEN_KEY = 'voting-open';
 export const LAST_ACTIVITY_KEY = 'session-start-time';
+export const SESSION_VERSION_KEY = 'session-version';
 
 const SESSION_DURATION = 7200000; // 2 hours in milliseconds
 
@@ -24,18 +25,37 @@ export const getProjectKey = (req) => req?.context?.extension?.project?.key || '
 export const getStorageKey = (req, baseKey) => `project:${getProjectKey(req)}:${baseKey}`;
 
 export const isSessionActive = async (req) => {
-    const key = getStorageKey(req, SESSION_ACTIVE_KEY);
-    const active = await storage.get(key) || false;
+    const active = await storage.get(getStorageKey(req, SESSION_ACTIVE_KEY)) || false;
     if (!active) return false;
 
-    const startTimeKey = getStorageKey(req, LAST_ACTIVITY_KEY);
-    const startTime = await storage.get(startTimeKey);
+    const startTime = await storage.get(getStorageKey(req, LAST_ACTIVITY_KEY));
     if (startTime && (Date.now() - startTime > SESSION_DURATION)) {
         await endSession(req);
         return false;
     }
 
     return true;
+};
+
+/**
+ * Returns the current session version (for lightweight poll). Does not run heartbeat.
+ * Used so the client can compare to lastKnownVersion and only fetch full state when changed.
+ */
+export const getSessionVersion = async (req) => {
+    const version = await storage.get(getStorageKey(req, SESSION_VERSION_KEY));
+    return { version: version ?? 0 };
+};
+
+/**
+ * Increment and persist session version. Call after any mutation that changes session state
+ * so clients that poll getSessionVersion() know to refetch full state.
+ */
+export const incrementSessionVersion = async (req) => {
+    const key = getStorageKey(req, SESSION_VERSION_KEY);
+    const current = (await storage.get(key)) ?? 0;
+    const next = current + 1;
+    await storage.set(key, next);
+    return next;
 };
 
 /**
@@ -68,7 +88,8 @@ export const buildGroomingState = async (req) => {
         groomingList,
         users,
         votingOpen,
-        revealed
+        revealed,
+        version
     ] = await Promise.all([
         storage.get(key(SESSION_ACTIVE_KEY)),
         storage.get(key(CURRENT_ITEM_KEY)),
@@ -76,7 +97,8 @@ export const buildGroomingState = async (req) => {
         storage.get(key(GROOMING_LIST_KEY)),
         getSessionUsers(req),
         storage.get(key(VOTING_OPEN_KEY)),
-        storage.get(key(REVEALED_KEY))
+        storage.get(key(REVEALED_KEY)),
+        storage.get(key(SESSION_VERSION_KEY))
     ]);
 
     let votes = [];
@@ -104,7 +126,8 @@ export const buildGroomingState = async (req) => {
         sessionUsers: users || [],
         isVotingOpen: !!votingOpen,
         votes,
-        votesRevealed: !!revealed
+        votesRevealed: !!revealed,
+        version: version ?? 0
     };
 };
 
@@ -129,6 +152,7 @@ export const startSession = async (req) => {
     if (list.length > 0) {
         await storage.set(key(CURRENT_ITEM_KEY), list[0]);
     }
+    await incrementSessionVersion(req);
     return buildGroomingState(req);
 };
 
@@ -145,6 +169,7 @@ export const endSession = async (req) => {
     await Promise.all(list.map((item) => storage.delete(key(`${VOTES_PREFIX}${item.id}`))));
 
     await storage.delete(key(CURRENT_ITEM_KEY));
+    await incrementSessionVersion(req);
     return buildGroomingState(req);
 };
 

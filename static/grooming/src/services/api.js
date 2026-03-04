@@ -3,6 +3,7 @@ import { invoke } from '@forge/bridge';
 export const getBacklog = () => invoke('getBacklog');
 export const updateGroomingList = (list) => invoke('updateGroomingList', { list });
 export const getGroomingState = () => invoke('getGroomingState');
+export const getSessionVersion = () => invoke('getSessionVersion');
 export const startSession = () => invoke('startSession');
 export const endSession = () => invoke('endSession');
 export const setCurrentItem = (item) => invoke('setCurrentItem', { item });

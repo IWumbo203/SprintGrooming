@@ -73,6 +73,9 @@ export const useGroomingState = () => {
                     const fullItem = issueMap.get(serverItem.id);
                     setCurrentItem(fullItem ? { ...serverItem, description: fullItem.description } : serverItem);
                 }
+                if (sessionState.version != null) {
+                    lastKnownVersion.current = sessionState.version;
+                }
             }
         } catch (err) {
             console.error('Initialization error:', err);
@@ -106,6 +109,8 @@ export const useGroomingState = () => {
 
     // Track last manual action time to avoid "race condition" jump-backs and for poll back-off
     const lastActionTime = useRef(0);
+    // Cache version from server; polling reads only this and refetches full state when it changes
+    const lastKnownVersion = useRef(null);
 
     // Ref for applyServerState so we can read current state without stale closures
     const stateRef = useRef({ isSessionActive, currentItem, groomingList });
@@ -134,6 +139,9 @@ export const useGroomingState = () => {
      */
     const applyServerState = useCallback((data, { fromPoll = false } = {}) => {
         if (!data) return;
+        if (data.version != null) {
+            lastKnownVersion.current = data.version;
+        }
 
         const {
             isSessionActive: serverSessionActive,
@@ -181,7 +189,7 @@ export const useGroomingState = () => {
         }
     }, [updateCurrentItem]);
 
-    useSessionPolling(applyServerState, lastActionTime, isSessionActive);
+    useSessionPolling(applyServerState, lastActionTime, isSessionActive, lastKnownVersion);
 
     const onDragEnd = async (result) => {
         const { source, destination } = result;
@@ -321,24 +329,16 @@ export const useGroomingState = () => {
             }
         }
 
-        if (fieldId) {
-            setUpdating(true);
-            try {
-                await api.updateStoryPoints(currentItem.id, fieldId, points);
-                const state = await api.updateGroomingList(updatedList);
-                if (state) applyServerState(state, { fromPoll: false });
-                try {
-                    await view.refresh();
-                } catch (e) {
-                    console.warn('View refresh failed:', e);
-                }
-            } catch (err) {
-                alert(`Failed to update points in Jira: ${err.message}`);
-                return;
-            } finally {
-                setUpdating(false);
-            }
-        } else {
+        setUpdating(true);
+        try {
+            await api.updateStoryPoints(currentItem.id, fieldId, points);
+            const state = await api.updateGroomingList(updatedList);
+            if (state) applyServerState(state, { fromPoll: false });
+        } catch (err) {
+            alert(`Failed to update points in Jira: ${err.message}`);
+            return;
+        } finally {
+            setUpdating(false);
             const state = await api.updateGroomingList(updatedList);
             if (state) applyServerState(state, { fromPoll: false });
         }

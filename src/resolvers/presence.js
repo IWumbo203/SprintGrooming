@@ -1,7 +1,8 @@
 import api, { route, storage } from '@forge/api';
 import { getStorageKey } from './session';
+import { incrementSessionVersion } from './session';
 
-const SESSION_USERS_KEY = 'session-active-users';
+export const SESSION_USERS_KEY = 'session-active-users';
 
 /**
  * Updates presence for the current user and cleans stale entries.
@@ -43,6 +44,7 @@ export const heartbeat = async (req) => {
     });
 
     await storage.set(key, cleanedUsers);
+    await incrementSessionVersion(req);
     return true;
 };
 
